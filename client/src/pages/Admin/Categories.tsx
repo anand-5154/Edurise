@@ -78,7 +78,7 @@ const Categories = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <BeatLoader color="#7e22ce" size={30} />
+        <BeatLoader color="#2563eb" size={30} />
       </div>
     );
   }
@@ -131,7 +131,7 @@ const Categories = () => {
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        className="text-blue-600 hover:text-blue-900"
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
@@ -141,7 +141,7 @@ const Categories = () => {
                         className="text-red-600 hover:text-red-900 disabled:opacity-50"
                       >
                         {isDeleting === category._id ? (
-                          <BeatLoader color="#dc2626" size={8} />
+                          <BeatLoader color="#2563eb" size={8} />
                         ) : (
                           <Trash2 className="w-5 h-5" />
                         )}

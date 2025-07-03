@@ -19,16 +19,36 @@ export class InstructorAuthController implements IInstructorController{
     }
 
     async signin(req: Request, res: Response): Promise<void> {
-        try{
-            const {email,password}=req.body
-            const {token, isVerified, accountStatus} = await this.instructorAuthService.loginInstructor(email,password)
+        try {
+            const { email, password } = req.body;
+            
+            if (!email || !password) {
+                res.status(httpStatus.BAD_REQUEST).json({ 
+                    message: "Email and password are required" 
+                });
+                return;
+            }
+
+            const result = await this.instructorAuthService.loginInstructor(email, password);
             res.status(httpStatus.OK).json({ 
-                token,
-                isVerified,
-                accountStatus
-            })
-        }catch(err:any){
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
+                ...result,
+                message: "Login successful"
+            });
+        } catch (err: any) {
+            // Handle specific error cases
+            if (err.message.includes("No account found")) {
+                res.status(httpStatus.NOT_FOUND).json({ message: err.message });
+            } else if (err.message.includes("Incorrect password")) {
+                res.status(httpStatus.UNAUTHORIZED).json({ message: err.message });
+            } else if (err.message.includes("blocked")) {
+                res.status(httpStatus.FORBIDDEN).json({ message: err.message });
+            } else if (err.message.includes("pending")) {
+                res.status(httpStatus.FORBIDDEN).json({ message: err.message });
+            } else {
+                res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ 
+                    message: "An unexpected error occurred. Please try again later." 
+                });
+            }
         }
     }
 
@@ -82,5 +102,20 @@ export class InstructorAuthController implements IInstructorController{
       }catch(err:any){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
       }
+    }
+
+    async refreshToken(req: Request, res: Response): Promise<void> {
+        try {
+            const { refreshToken } = req.body;
+            if (!refreshToken) {
+                res.status(httpStatus.BAD_REQUEST).json({ message: 'Refresh token is required' });
+                return;
+            }
+    
+            const result = await this.instructorAuthService.refreshToken(refreshToken);
+            res.status(httpStatus.OK).json(result);
+        } catch (err: any) {
+            res.status(httpStatus.UNAUTHORIZED).json({ message: err.message });
+        }
     }
 }

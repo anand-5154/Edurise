@@ -12,8 +12,13 @@ export interface GetAllCoursesParams {
   maxPrice?: number;
 }
 
+// For admin: course with enrolledCount
+export interface AdminCourse extends ICourse {
+  enrolledCount: number;
+}
+
 export interface GetAllCoursesResult {
-  courses: ICourse[];
+  courses: ICourse[] | AdminCourse[];
   total: number;
   totalPages: number;
   currentPage: number;
@@ -21,4 +26,5 @@ export interface GetAllCoursesResult {
 
 export interface IUserService {
   getAllCourses(params: GetAllCoursesParams): Promise<GetAllCoursesResult>;
+  changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }>;
 } 

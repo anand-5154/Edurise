@@ -39,10 +39,20 @@ export class InstructorAuth implements IInstructorAuthRepository, IInstructorAut
             throw new Error('Instructor not found');
         }
         
-        await Instructor.findByIdAndUpdate(instructorId, {
-            isVerified: true,
-            accountStatus: 'active'
-        });
+        const updatedInstructor = await Instructor.findByIdAndUpdate(
+            instructorId,
+            {
+                $set: {
+                    isVerified: true,
+                    accountStatus: 'approved'
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedInstructor) {
+            throw new Error('Failed to update instructor status');
+        }
     }
 
     async rejectInstructor(instructorId: string): Promise<void> {
@@ -51,6 +61,29 @@ export class InstructorAuth implements IInstructorAuthRepository, IInstructorAut
             throw new Error('Instructor not found');
         }
         
-        await Instructor.findByIdAndDelete(instructorId);
+        await Instructor.findByIdAndUpdate(instructorId, {
+            accountStatus: 'rejected'
+        });
+    }
+
+    async updatePassword(email: string, hashedPassword: string): Promise<IInstructor | null> {
+        const instructor = await Instructor.findOneAndUpdate(
+            { email },
+            { password: hashedPassword },
+            { new: true }
+        );
+        return instructor;
+    }
+
+    async findById(id: string) {
+        return Instructor.findById(id).select('-password -__v');
+    }
+
+    async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
+        return Instructor.findByIdAndUpdate(id, update, { new: true }).select('-password -__v');
+    }
+
+    async updatePasswordById(id: string, hashedPassword: string) {
+        return Instructor.findByIdAndUpdate(id, { password: hashedPassword }, { new: true });
     }
 }

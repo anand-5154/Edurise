@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import type { FormEvent } from 'react';
 import axiosInstance from '../../services/apiService';
@@ -12,7 +12,13 @@ interface LoginResponse {
     email: string;
     role: string;
   };
-  token: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface FormErrors {
+  email?: string;
+  password?: string;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -22,16 +28,88 @@ export default function UserLogin() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [touched, setTouched] = useState({ email: false, password: false })
   const navigate = useNavigate()
+
+  // Validate email on change
+  const validateEmail = (email: string): string | undefined => {
+    if (!email.trim()) {
+      return 'Please enter your email address'
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      return 'Please enter a valid email address'
+    }
+    return undefined
+  }
+
+  // Validate password on change
+  const validatePassword = (password: string): string | undefined => {
+    if (!password.trim()) {
+      return 'Please enter your password'
+    }
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long'
+    }
+    return undefined
+  }
+
+  // Update errors when email changes
+  useEffect(() => {
+    if (touched.email) {
+      const emailError = validateEmail(email)
+      setErrors(prev => ({
+        ...prev,
+        email: emailError
+      }))
+    }
+  }, [email, touched.email])
+
+  // Update errors when password changes
+  useEffect(() => {
+    if (touched.password) {
+      const passwordError = validatePassword(password)
+      setErrors(prev => ({
+        ...prev,
+        password: passwordError
+      }))
+    }
+  }, [password, touched.password])
+
+  const handleBlur = (field: 'email' | 'password') => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+  }
+
+  const validateForm = (): boolean => {
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
+    
+    setErrors({
+      email: emailError,
+      password: passwordError
+    })
+
+    return !emailError && !passwordError
+  }
 
   const handleSubmit = async(e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    
+    // Mark all fields as touched on submit
+    setTouched({ email: true, password: true })
+    
+    if (!validateForm()) {
+      errorToast('Please fix the form errors before submitting')
+      return
+    }
+
     setIsLoading(true)
     try {
       const response = await axiosInstance.post<LoginResponse>("/users/login", { email, password })
       if (response && response.status === 200) {
-        const { token } = response.data;
-        localStorage.setItem('token', token);
+        const { accessToken, refreshToken } = response.data;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
         successToast("Login Successful")
         setTimeout(() => {
           navigate("/")
@@ -47,6 +125,8 @@ export default function UserLogin() {
   const handleGoogleLogin = () => {
     window.location.href = `${API_URL}/users/auth/google`;
   }
+
+  const isFormValid = email.trim() !== '' && password.trim() !== '' && !errors.email && !errors.password
 
   return (
     <div className="w-full max-w-md mx-auto p-6 mt-35 rounded-lg shadow-lg">
@@ -88,10 +168,12 @@ export default function UserLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onBlur={() => handleBlur('email')}
+                className={`w-full py-2 pl-10 pr-4 border ${touched.email && errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                 placeholder="you@example.com"
               />
             </div>
+            {touched.email && errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
@@ -108,7 +190,8 @@ export default function UserLogin() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full py-2 pl-10 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onBlur={() => handleBlur('password')}
+                className={`w-full py-2 pl-10 pr-10 border ${touched.password && errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                 placeholder="••••••••"
               />
               <button
@@ -119,6 +202,7 @@ export default function UserLogin() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            {touched.password && errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
           </div>
 
           <div className="flex items-center justify-between">
@@ -133,7 +217,7 @@ export default function UserLogin() {
           <div>
             <button
               type='submit'
-              disabled={isLoading}
+              disabled={isLoading || !isFormValid}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Signing in..." : "Sign in"}

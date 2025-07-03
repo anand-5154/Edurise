@@ -8,6 +8,7 @@ export interface DashboardStats {
     totalInstructors: number;
     totalCourses: number;
     pendingRequests: number;
+    revenue: number;
 }
 
 export interface LoginResponse {
@@ -35,4 +36,6 @@ export interface IAdminService{
     createCategory(name: string): Promise<Category>;
     updateCategory(id: string, name: string): Promise<Category | null>;
     deleteCategory(id: string): Promise<Category | null>;
+    refreshToken(token: string): Promise<{ accessToken: string }>;
+    getUserDetailsWithProgress(userId: string): Promise<any>;
 }

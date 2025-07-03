@@ -25,6 +25,7 @@ const CreateCourse: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [lectures, setLectures] = useState([{ title: '', videoUrl: '' }]);
 
   useEffect(() => {
     // Fetch categories when component mounts
@@ -52,6 +53,13 @@ const CreateCourse: React.FC = () => {
     }
   };
 
+  const handleLectureChange = (index: number, field: string, value: string) => {
+    setLectures(prev => prev.map((lec, i) => i === index ? { ...lec, [field]: value } : lec));
+  };
+
+  const addLecture = () => setLectures(prev => [...prev, { title: '', videoUrl: '' }]);
+  const removeLecture = (index: number) => setLectures(prev => prev.filter((_, i) => i !== index));
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -71,6 +79,11 @@ const CreateCourse: React.FC = () => {
     if (!formData.thumbnail.trim()) newErrors.thumbnail = "Thumbnail URL is required";
     if (!formData.demoVideo.trim()) newErrors.demoVideo = "Demo video URL is required";
     
+    lectures.forEach((lec, idx) => {
+      if (!lec.title.trim()) newErrors[`lectureTitle${idx}`] = 'Lecture title is required';
+      if (!lec.videoUrl.trim()) newErrors[`lectureUrl${idx}`] = 'Lecture video URL is required';
+    });
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -88,7 +101,8 @@ const CreateCourse: React.FC = () => {
       const response = await axiosInstance.post("/instructors/courses", {
         ...formData,
         price: Number(formData.price),
-        duration: Number(formData.duration)
+        duration: Number(formData.duration),
+        lectures
       });
       
       if (response && response.status === 201) {
@@ -253,6 +267,38 @@ const CreateCourse: React.FC = () => {
             />
             {errors.demoVideo && <p className="mt-1 text-sm text-red-600">{errors.demoVideo}</p>}
             <p className="mt-1 text-sm text-gray-500">Upload your demo video to Cloudinary and paste the URL here</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Lectures</label>
+            {lectures.map((lec, idx) => (
+              <div key={idx} className="mb-4 p-4 border rounded bg-gray-50">
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    placeholder={`Lecture ${idx + 1} Title`}
+                    value={lec.title}
+                    onChange={e => handleLectureChange(idx, 'title', e.target.value)}
+                    className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
+                  />
+                  {errors[`lectureTitle${idx}`] && <p className="text-sm text-red-600">{errors[`lectureTitle${idx}`]}</p>}
+                </div>
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    placeholder="Video URL"
+                    value={lec.videoUrl}
+                    onChange={e => handleLectureChange(idx, 'videoUrl', e.target.value)}
+                    className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
+                  />
+                  {errors[`lectureUrl${idx}`] && <p className="text-sm text-red-600">{errors[`lectureUrl${idx}`]}</p>}
+                </div>
+                {lectures.length > 1 && (
+                  <button type="button" onClick={() => removeLecture(idx)} className="text-red-500 text-xs">Remove</button>
+                )}
+              </div>
+            ))}
+            <button type="button" onClick={addLecture} className="text-blue-600 text-sm font-medium">+ Add Lecture</button>
           </div>
 
           <div>

@@ -7,8 +7,13 @@ export interface IUser extends Document{
     password:string,
     googleId:string
     phone:string,
+    profilePicture?: string,
     role:"admin"|"user"|"instructor",
     blocked: boolean,
+    refreshToken?: string,
     createdAt:Date,
-    updatedAt:Date
+    updatedAt:Date,
+    comparePassword(password: string): Promise<boolean>;
+    generateAccessToken(): string;
+    generateRefreshToken(): string;
 }

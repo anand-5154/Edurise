@@ -7,5 +7,6 @@ export interface IAuthController{
     forgotPassword(req:Request,res:Response):Promise<void>,
     verifyForgotOtp(req:Request,res:Response):Promise<void>,
     resetPassword(req:Request,res:Response):Promise<void>,
-    resentOtp(req:Request,res:Response):Promise<void>
+    resentOtp(req:Request,res:Response):Promise<void>,
+    refreshToken(req: Request, res: Response): Promise<void>
 }

@@ -6,6 +6,9 @@ import { OtpRepository } from "../repository/implementations/otp.repository"
 import { InstructorController } from "../controllers/implementations/instructor.controller"
 import { InstructorService } from "../services/implementation/instructor.services"
 import { authMiddleware, roleMiddleware } from "../middleware/auth.middleware"
+import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
 
 const instructorAuthRepository=new InstructorAuth()
@@ -17,6 +20,22 @@ const instructorController = new InstructorController(instructorService)
 
 const router=Router()
 
+// Explicitly configure Cloudinary with credentials from environment variables
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'instructor-profiles',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    transformation: [{ width: 300, height: 300, crop: 'limit' }],
+  },
+});
+const upload = multer({ storage });
+
 router.post("/register",instructorAuthController.signup.bind(instructorAuthController))
 router.post("/login",instructorAuthController.signin.bind(instructorAuthController))
 router.post("/verify-otp",instructorAuthController.verifyOtp.bind(instructorAuthController))
@@ -24,10 +43,39 @@ router.post("/forgotpassword", instructorAuthController.forgotPassword.bind(inst
 router.post("/reset-verify-otp", instructorAuthController.verifyForgotOtp.bind(instructorAuthController))
 router.put("/resetpassword", instructorAuthController.resetPassword.bind(instructorAuthController))
 router.post("/resend-otp",instructorAuthController.resentOtp.bind(instructorAuthController))
+router.post("/refresh-token", instructorAuthController.refreshToken.bind(instructorAuthController));
 router.get("/dashboard", authMiddleware, roleMiddleware(['instructor']), instructorController.getDashboardStats.bind(instructorController))
 router.post("/courses", authMiddleware, roleMiddleware(['instructor']), instructorController.createCourse.bind(instructorController))
 router.get("/courses", authMiddleware, roleMiddleware(['instructor']), instructorController.getCourses.bind(instructorController))
 router.get("/courses/:courseId", authMiddleware, roleMiddleware(['instructor']), instructorController.getCourseById.bind(instructorController))
 router.put("/courses/:courseId", authMiddleware, roleMiddleware(['instructor']), instructorController.updateCourse.bind(instructorController))
+router.get('/courses/:courseId/progress', instructorController.getCourseLectureProgress.bind(instructorController));
+
+// Instructor profile routes
+router.get(
+  '/profile',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  instructorController.getProfile.bind(instructorController)
+);
+router.put(
+  '/profile',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  instructorController.updateProfile.bind(instructorController)
+);
+router.post(
+  '/upload-profile-picture',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  upload.single('profilePicture'),
+  instructorController.uploadProfilePicture.bind(instructorController)
+);
+router.put(
+  '/change-password',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  instructorController.changePassword.bind(instructorController)
+);
 
 export default router

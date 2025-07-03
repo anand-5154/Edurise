@@ -9,8 +9,8 @@ interface OtpPageProps {
 
 const ForgotOtpPage: React.FC<OtpPageProps> = ({role}) => {
   const [otp, setOtp] = useState('');
-  const [timer,setTimer]=useState(60)
-  const [canResend,setCanResend]=useState(false)
+  const [timer, setTimer] = useState(60) 
+  const [canResend, setCanResend] = useState(false)
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -29,19 +29,28 @@ const ForgotOtpPage: React.FC<OtpPageProps> = ({role}) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
-
+    // Custom OTP validation
+    if (!otp) {
+      setError('OTP is required');
+      return;
+    }
+    if (!/^[0-9]{6}$/.test(otp)) {
+      if (!/^[0-9]+$/.test(otp)) {
+        setError('OTP must contain only numbers');
+      } else if (otp.length !== 6) {
+        setError('OTP must be exactly 6 digits');
+      }
+      return;
+    }
+    setLoading(true);
     try {
-
       const stored = localStorage.getItem("email")
       const email = stored || null
-
       const response = await axiosInstance.post(`/${role}/reset-verify-otp`,{
         email,
         otp
       });
-
       if (response && response.status === 200) {
         successToast((response.data as { message: string }).message)
         navigate(`/${role}/resetpassword`)
@@ -94,7 +103,6 @@ const ForgotOtpPage: React.FC<OtpPageProps> = ({role}) => {
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
           />
 
           {error && (

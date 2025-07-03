@@ -7,7 +7,8 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const accessToken = searchParams.get('accessToken');
+    const refreshToken = searchParams.get('refreshToken');
     const error = searchParams.get('error');
 
     if (error) {
@@ -16,9 +17,10 @@ export default function AuthCallback() {
       return;
     }
 
-    if (token) {
-      // Store the token in localStorage
-      localStorage.setItem('token', token);
+    if (accessToken && refreshToken) {
+      // Store the tokens in localStorage
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
       successToast('Login successful');
       navigate('/');
     } else {

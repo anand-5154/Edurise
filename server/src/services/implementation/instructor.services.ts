@@ -47,8 +47,8 @@ export class InstructorService implements IInstructorService {
         throw new Error("Your account is pending verification");
       }
 
-      if (instructor.accountStatus !== "active") {
-        throw new Error("Your account is not active");
+      if (instructor.accountStatus !== "approved") {
+        throw new Error("Your account is not approved");
       }
 
       // Create the course
@@ -67,12 +67,12 @@ export class InstructorService implements IInstructorService {
 
   async getDashboardStats(instructorId: string): Promise<DashboardStats> {
     try {
-      // Get total students (unique students enrolled in instructor's courses)
+      // Get total students (unique students with completed enrollments in instructor's courses)
       const courses = await Course.find({ instructor: instructorId });
       const courseIds = courses.map(course => course._id);
-      
       const totalStudents = await Enrollment.distinct('student', {
-        course: { $in: courseIds }
+        course: { $in: courseIds },
+        status: 'completed'
       }).length;
 
       // Get total courses
@@ -191,8 +191,8 @@ export class InstructorService implements IInstructorService {
         throw new Error("Your account is pending verification");
       }
 
-      if (instructor.accountStatus !== "active") {
-        throw new Error("Your account is not active");
+      if (instructor.accountStatus !== "approved") {
+        throw new Error("Your account is not approved");
       }
 
       // Update the course
@@ -210,5 +210,29 @@ export class InstructorService implements IInstructorService {
       console.error('Error in updateCourse:', error);
       throw error;
     }
+  }
+
+  async getProfile(instructorId: string) {
+    return this.instructorRepository.findById(instructorId);
+  }
+
+  async updateProfile(instructorId: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
+    return this.instructorRepository.updateById(instructorId, update);
+  }
+
+  async changePassword(instructorId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
+    const instructor = await this.instructorRepository.findById(instructorId);
+    if (!instructor) {
+      return { success: false, message: 'Instructor not found' };
+    }
+    if (instructor.password) {
+      const isMatch = await bcrypt.compare(currentPassword, instructor.password);
+      if (!isMatch) {
+        return { success: false, message: 'Current password is incorrect' };
+      }
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await this.instructorRepository.updatePasswordById(instructorId, hashed);
+    return { success: true };
   }
 } 

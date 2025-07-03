@@ -1,8 +1,14 @@
 import { IUserService, GetAllCoursesParams, GetAllCoursesResult } from '../interfaces/user.services';
 import Course from '../../models/implementations/courseModel';
 import { ICourse } from '../../models/interfaces/course.interface';
+import bcrypt from 'bcrypt';
+import { UserRepository } from '../../repository/implementations/user.repository';
 
 export class UserService implements IUserService {
+  constructor(
+    public userRepository: UserRepository
+  ) {}
+
   async getAllCourses(params: GetAllCoursesParams): Promise<GetAllCoursesResult> {
     try {
       const { page, limit, sort, order, search, category, level, minPrice, maxPrice } = params;
@@ -68,5 +74,31 @@ export class UserService implements IUserService {
       console.error('Error in getCourseById:', error);
       throw error;
     }
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      return { success: false, message: 'User not found' };
+    }
+    if (user.password) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return { success: false, message: 'Current password is incorrect' };
+      }
+    }
+    // Allow Google users (no password) to set a password
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+    return { success: true };
+  }
+
+  async getProfile(userId: string) {
+    return this.userRepository.findById(userId);
+  }
+
+  async updateProfile(userId: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
+    return this.userRepository.updateById(userId, update);
   }
 } 

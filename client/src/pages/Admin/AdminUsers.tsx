@@ -1,7 +1,7 @@
 import {useState,useEffect} from 'react'
 import axiosInstance from '../../services/apiService'
 import BeatLoader from "react-spinners/BeatLoader"
-import { Search, ChevronLeft, ChevronRight, Filter, Lock, LockOpen } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Lock, LockOpen, Eye } from 'lucide-react'
 import { successToast, errorToast } from '../../components/Toast'
 
 interface User{
@@ -10,7 +10,7 @@ interface User{
   username: string,
   email: string,
   phone: string,
-  role: "admin" | "user" | "instructor",
+  role: "user",
   blocked: boolean,
   createdAt: Date,
   updatedAt: Date
@@ -30,13 +30,16 @@ const AdminUsers = () => {
   const [users,setUsers]=useState<User[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'instructor'>('all')
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [userDetails, setUserDetails] = useState<any>(null)
+  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
 
   useEffect(()=>{
     fetchUsers()
-  },[currentPage, searchTerm, roleFilter])
+  },[currentPage, searchTerm])
 
   const fetchUsers = async () => {
     try {
@@ -44,7 +47,6 @@ const AdminUsers = () => {
         page: currentPage.toString(),
         limit: ITEMS_PER_PAGE.toString(),
         search: searchTerm,
-        role: roleFilter !== 'all' ? roleFilter : ''
       })
 
       const response = await axiosInstance.get<UsersResponse>(`/admin/users?${params}`)
@@ -92,6 +94,21 @@ const AdminUsers = () => {
     }
   }
 
+  const handleViewDetails = async (userId: string) => {
+    setSelectedUserId(userId)
+    setDetailsLoading(true)
+    setShowDetailsModal(true)
+    try {
+      const res = await axiosInstance.get(`/admin/users/${userId}/details`)
+      setUserDetails(res.data)
+    } catch (err) {
+      errorToast('Failed to fetch user details')
+      setUserDetails(null)
+    } finally {
+      setDetailsLoading(false)
+    }
+  }
+
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -103,7 +120,7 @@ const AdminUsers = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <BeatLoader color="#7e22ce" size={30} />
+        <BeatLoader color="#2563eb" size={30} />
       </div>
     )
   }
@@ -131,24 +148,7 @@ const AdminUsers = () => {
                   <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <select
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value as 'all' | 'user' | 'instructor')}
-                  className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="all">All Roles</option>
-                  <option value="user">Users</option>
-                  <option value="instructor">Instructors</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={handleFilter}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                >
-                  <Filter className="w-5 h-5" />
-                </button>
-              </div>
+              
             </div>
           </form>
         </div>
@@ -160,9 +160,7 @@ const AdminUsers = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
@@ -173,17 +171,7 @@ const AdminUsers = () => {
                 {users.map(user => (
                   <tr key={user._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{user.username}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'instructor' 
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{user.phone || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -210,6 +198,13 @@ const AdminUsers = () => {
                         ) : (
                           <LockOpen className="h-5 w-5" />
                         )}
+                      </button>
+                      <button
+                        onClick={() => handleViewDetails(user._id)}
+                        className="ml-3 text-blue-600 hover:text-blue-800"
+                        title="View Details"
+                      >
+                        <Eye className="h-5 w-5" />
                       </button>
                     </td>
                   </tr>
@@ -238,7 +233,7 @@ const AdminUsers = () => {
                     onClick={() => handlePageChange(page)}
                     className={`px-3 py-1 rounded-md ${
                       currentPage === page
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-blue-600 text-white'
                         : 'hover:bg-gray-100'
                     }`}
                   >
@@ -257,6 +252,48 @@ const AdminUsers = () => {
           </div>
         </div>
       </div>
+
+      {showDetailsModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-end pointer-events-none">
+          <div className="w-full max-w-md h-full bg-white shadow-2xl border-l border-gray-200 p-6 relative pointer-events-auto animate-slide-in-right">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+              onClick={() => setShowDetailsModal(false)}
+            >
+              <span className="text-2xl">&times;</span>
+            </button>
+            {detailsLoading ? (
+              <div className="flex justify-center items-center h-40">
+                <BeatLoader color="#2563eb" size={20} />
+              </div>
+            ) : userDetails ? (
+              <div>
+                <h2 className="text-xl font-bold mb-2">{userDetails.user.name}</h2>
+                <p className="text-gray-600 mb-2">Email: {userDetails.user.email}</p>
+                <p className="text-gray-600 mb-2">Phone: {userDetails.user.phone || 'N/A'}</p>
+                <p className="text-gray-600 mb-4">Role: {userDetails.user.role}</p>
+                <h3 className="text-lg font-semibold mb-2">Enrolled Courses</h3>
+                {userDetails.courses.length === 0 ? (
+                  <p className="text-gray-500">No enrolled courses.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {userDetails.courses.map((course: any) => (
+                      <li key={course.id} className="border rounded p-3">
+                        <div className="font-medium">{course.title}</div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          Lectures completed: {course.lecturesCompleted.length}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500">No details available.</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

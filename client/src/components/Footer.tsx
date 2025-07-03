@@ -1,0 +1,12 @@
+const Footer = () => (
+  <footer className="relative bg-gray-100 py-8 px-4 text-center text-sm text-gray-500 flex flex-col md:flex-row items-center justify-between gap-4 border-t-2 border-gray-200 mt-12 shadow overflow-hidden">
+    <span className="text-gray-500 z-10">© {new Date().getFullYear()} <span className="font-bold text-purple-700">EduRise</span>. All rights reserved.</span>
+    <span className="flex gap-4 justify-center mt-2 md:mt-0 z-10">
+      <a href="#" className="hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"><svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.56v14.91c0 2.52-2.05 4.57-4.57 4.57H4.57C2.05 24.04 0 21.99 0 19.47V4.56C0 2.04 2.05 0 4.57 0h14.86C21.95 0 24 2.05 24 4.56zM7.19 20.45h3.09v-7.09H7.19v7.09zm1.54-8.09c.99 0 1.79-.8 1.79-1.79s-.8-1.79-1.79-1.79-1.79.8-1.79 1.79.8 1.79 1.79 1.79zm11.27 8.09h3.09v-4.09c0-2.18-2.62-2.02-2.62 0v4.09zm-1.54-7.09c.99 0 1.79-.8 1.79-1.79s-.8-1.79-1.79-1.79-1.79.8-1.79 1.79.8 1.79 1.79 1.79z"/></svg></a>
+      <a href="#" className="hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-purple-50"><svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.56v14.91c0 2.52-2.05 4.57-4.57 4.57H4.57C2.05 24.04 0 21.99 0 19.47V4.56C0 2.04 2.05 0 4.57 0h14.86C21.95 0 24 2.05 24 4.56zM7.19 20.45h3.09v-7.09H7.19v7.09zm1.54-8.09c.99 0 1.79-.8 1.79-1.79s-.8-1.79-1.79-1.79-1.79.8-1.79 1.79.8 1.79 1.79 1.79zm11.27 8.09h3.09v-4.09c0-2.18-2.62-2.02-2.62 0v4.09zm-1.54-7.09c.99 0 1.79-.8 1.79-1.79s-.8-1.79-1.79-1.79-1.79.8-1.79 1.79.8 1.79 1.79 1.79z"/></svg></a>
+      <a href="#" className="hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-blue-100"><svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.56v14.91c0 2.52-2.05 4.57-4.57 4.57H4.57C2.05 24.04 0 21.99 0 19.47V4.56C0 2.04 2.05 0 4.57 0h14.86C21.95 0 24 2.05 24 4.56zM7.19 20.45h3.09v-7.09H7.19v7.09zm1.54-8.09c.99 0 1.79-.8 1.79-1.79s-.8-1.79-1.79-1.79-1.79.8-1.79 1.79.8 1.79 1.79 1.79zm11.27 8.09h3.09v-4.09c0-2.18-2.62-2.02-2.62 0v4.09zm-1.54-7.09c.99 0 1.79-.8 1.79-1.79s-.8-1.79-1.79-1.79-1.79.8-1.79 1.79.8 1.79 1.79 1.79z"/></svg></a>
+    </span>
+  </footer>
+);
+
+export default Footer; 

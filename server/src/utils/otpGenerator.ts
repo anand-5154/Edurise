@@ -11,4 +11,4 @@ export default function generateOtp(){
     return otp
 }
 
-export const otpExpiry=new Date(Date.now()+5*60*1000)
+export const otpExpiry=new Date(Date.now()+10*60*1000)

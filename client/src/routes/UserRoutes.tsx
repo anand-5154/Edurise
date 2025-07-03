@@ -9,6 +9,9 @@ import ResetPassword from "../components/ResetPassword"
 import AuthCallback from "../pages/AuthCallback"
 import Courses from "../pages/User/Courses"
 import CourseDetails from "../pages/User/CourseDetails"
+import UserProfile from "../pages/User/UserProfile"
+import PaymentPage from '../pages/User/PaymentPage';
+import LearningPage from '../pages/User/LearningPage';
 
 const UserRoutes = () => {
   return (
@@ -23,6 +26,9 @@ const UserRoutes = () => {
       <Route path="/auth/callback" element={<AuthCallback/>}/>
       <Route path="/courses" element={<Courses/>}/>
       <Route path="/courses/:courseId" element={<CourseDetails/>}/>
+      <Route path="/courses/:courseId/payment" element={<PaymentPage/>}/>
+      <Route path="/courses/:courseId/learn" element={<LearningPage/>}/>
+      <Route path="/profile" element={<UserProfile/>}/>
     </Routes>
   )
 }

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
     headers: {
         "Content-Type": "application/json"
     }
@@ -10,19 +10,19 @@ const axiosInstance = axios.create({
 // Add a request interceptor to add the auth token to requests
 axiosInstance.interceptors.request.use(
     (config) => {
-        // Get the current path to determine which token to use
         const currentPath = window.location.pathname;
         let token = null;
 
         if (currentPath.startsWith('/instructors')) {
-            token = localStorage.getItem('instructorToken');
+            token = localStorage.getItem('instructorAccessToken');
         } else if (currentPath.startsWith('/admin')) {
-            token = localStorage.getItem('adminToken');
+            token = localStorage.getItem('adminAccessToken');
         } else {
-            token = localStorage.getItem('token');
+            token = localStorage.getItem('accessToken');
         }
         
         if (token) {
+            console.log('Axios interceptor using token:', token);
             config.headers = config.headers || {};
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -33,26 +33,108 @@ axiosInstance.interceptors.request.use(
     }
 );
 
+let isRefreshing = false;
+let failedQueue: { resolve: (value: unknown) => void; reject: (reason?: any) => void; }[] = [];
+
+const processQueue = (error: any, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+
+    failedQueue = [];
+};
+
 // Add a response interceptor
 axiosInstance.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Clear tokens based on the current path
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise(function(resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                    return axiosInstance(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                })
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+            
             const currentPath = window.location.pathname;
+            let refreshToken = null;
+            let refreshEndpoint = '';
+            let accessTokenKey = '';
+            let refreshTokenKey = '';
+            let loginUrl = '';
+
             if (currentPath.startsWith('/instructors')) {
-                localStorage.removeItem('instructorToken');
-                window.location.href = '/instructors/login';
+                refreshToken = localStorage.getItem('instructorRefreshToken');
+                refreshEndpoint = '/instructors/refresh-token';
+                accessTokenKey = 'instructorAccessToken';
+                refreshTokenKey = 'instructorRefreshToken';
+                loginUrl = '/instructors/login';
             } else if (currentPath.startsWith('/admin')) {
-                localStorage.removeItem('adminToken');
-                window.location.href = '/admin/login';
+                refreshToken = localStorage.getItem('adminRefreshToken');
+                refreshEndpoint = '/admin/refresh-token'; // Assuming this exists
+                accessTokenKey = 'adminAccessToken';
+                refreshTokenKey = 'adminRefreshToken';
+                loginUrl = '/admin/login';
             } else {
-                localStorage.removeItem('token');
-                window.location.href = '/users/login';
+                refreshToken = localStorage.getItem('refreshToken');
+                refreshEndpoint = '/users/refresh-token';
+                accessTokenKey = 'accessToken';
+                refreshTokenKey = 'refreshToken';
+                loginUrl = '/users/login';
+            }
+
+            if (!refreshToken) {
+                localStorage.removeItem(accessTokenKey);
+                localStorage.removeItem(refreshTokenKey);
+                window.location.href = loginUrl;
+                return Promise.reject(error);
+            }
+
+            try {
+                const { data } = await axiosInstance.post(refreshEndpoint, { refreshToken });
+                localStorage.setItem(accessTokenKey, data.accessToken);
+                axiosInstance.defaults.headers.common['Authorization'] = 'Bearer ' + data.accessToken;
+                originalRequest.headers['Authorization'] = 'Bearer ' + data.accessToken;
+                processQueue(null, data.accessToken);
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                localStorage.removeItem(accessTokenKey);
+                localStorage.removeItem(refreshTokenKey);
+                window.location.href = loginUrl;
+                processQueue(refreshError, null);
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
             }
         }
         return Promise.reject(error);
     }
 );
+
+// Razorpay Payment APIs
+export const createRazorpayOrder = async (amount: number, courseId: string) => {
+  return axiosInstance.post('/api/payment/orders', { amount, courseId });
+};
+
+export const verifyRazorpayPayment = async (order_id: string, payment_id: string, signature: string, courseId: string, amount: number) => {
+  return axiosInstance.post('/api/payment/verify', { order_id, payment_id, signature, courseId, amount });
+};
+
+export const checkUserEnrolled = async (courseId: string) => {
+  return axiosInstance.get(`/users/courses/${courseId}/enrolled`);
+};
 
 export default axiosInstance

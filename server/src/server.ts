@@ -10,6 +10,8 @@ import passport from "./config/passport.config"
 import nocache from "nocache"
 import session from "express-session"
 
+import paymentRoutes from './routes/payment.routes';
+
 dotenv.config()
 
 const app = express()
@@ -57,6 +59,17 @@ app.use("/users", userRoutes)
 app.use("/instructors", instructorRoutes)
 app.use("/admin", adminRoutes)
 
+app.use('/api/payment', paymentRoutes);
+
 server.listen(process.env.PORT, () => {
   console.log(`Server started on port ${process.env.PORT}`)
 })
+
+// Global error handler
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({
+    message: 'Internal Server Error',
+    error: err && err.message ? err.message : err
+  });
+});

@@ -10,6 +10,9 @@ import InstructorDashboard from "../pages/Instructor/InstructorDashboard"
 import CreateCourse from "../pages/Instructor/CreateCourse"
 import Courses from "../pages/Instructor/Courses"
 import ProtectedRoute from "../components/ProtectedRoute"
+import InstructorProfile from '../pages/Instructor/InstructorProfile';
+import Progress from '../pages/Instructor/Progress';
+import InstructorSettings from '../pages/Instructor/InstructorSettings';
 
 const InstructorRoutes = () => {
   return (
@@ -29,6 +32,9 @@ const InstructorRoutes = () => {
           <Route path="courses" element={<Courses />} />
           <Route path="courses/create" element={<CreateCourse />} />
           <Route path="courses/edit/:courseId" element={<CreateCourse />} />
+          <Route path="profile" element={<InstructorProfile />} />
+          <Route path="courses/:courseId/progress" element={<Progress />} />
+          <Route path="settings" element={<InstructorSettings />} />
         </Route>
       </Route>
     </Routes>

@@ -9,7 +9,7 @@ interface OtpPageProps {
 
 const OtpPage: React.FC<OtpPageProps> = ({role}) => {
   const [otp, setOtp] = useState('');
-  const [timer, setTimer] = useState(60)
+  const [timer, setTimer] = useState(60) // 10 minutes in second
   const [canResend, setCanResend] = useState(false)
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,7 +49,8 @@ const OtpPage: React.FC<OtpPageProps> = ({role}) => {
       if (response && response.status === 201) {
         localStorage.removeItem(storageKey);
         successToast((response.data as { message: string }).message);
-        navigate("/");
+        navigate(role === 'instructors' ? '/instructors/login' : 'instructors/login');
+        navigate(role === 'users' ? '/users/login' : '/login');
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'OTP verification failed';

@@ -7,7 +7,11 @@ import { IInstructor } from "../../models/interfaces/instructorAuth.interface";
 import { GetAllCoursesParams, GetAllCoursesResult } from "../interfaces/user.services";
 import Instructor from "../../models/implementations/instructorModel";
 import User from "../../models/implementations/userModel";
-import { Category } from '../../models/Category';
+import { Category as CategoryModel } from '../../models/Category';
+import { ICategory } from "../../models/interfaces/category.interface";
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { generateAccessToken } from '../../utils/generateToken';
 
 export class AdminService implements IAdminService {
     constructor(
@@ -29,7 +33,7 @@ export class AdminService implements IAdminService {
         const { page, limit, search, role } = params;
         
         // Build query
-        const query: any = {};
+        const query: any = { role: { $ne: 'admin' } };
         
         if (search) {
             query.$or = [
@@ -131,24 +135,115 @@ export class AdminService implements IAdminService {
     }
 
     // Category Management
-    async getCategories(): Promise<Category[]> {
-        return await Category.find().sort({ createdAt: -1 });
+    async getCategories(): Promise<ICategory[]> {
+        return await CategoryModel.find().sort({ createdAt: -1 });
     }
 
-    async createCategory(name: string): Promise<Category> {
-        const category = new Category({ name });
+    async createCategory(name: string): Promise<ICategory> {
+        const category = new CategoryModel({ name });
         return await category.save();
     }
 
-    async updateCategory(id: string, name: string): Promise<Category | null> {
-        return await Category.findByIdAndUpdate(
+    async updateCategory(id: string, name: string): Promise<ICategory | null> {
+        return await CategoryModel.findByIdAndUpdate(
             id,
             { name },
             { new: true }
         );
     }
 
-    async deleteCategory(id: string): Promise<Category | null> {
-        return await Category.findByIdAndDelete(id);
+    async deleteCategory(id: string): Promise<ICategory | null> {
+        return await CategoryModel.findByIdAndDelete(id);
+    }
+
+    // Instructor Management
+    async getAllInstructors(params: { page: number; limit: number; search: string }): Promise<{ instructors: IInstructor[]; total: number; totalPages: number; currentPage: number }> {
+        const { page, limit, search } = params;
+        
+        // Build query
+        const query: any = {};
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+        
+        // Get total count
+        const total = await Instructor.countDocuments(query);
+        
+        // Get instructors with pagination
+        const instructors = await Instructor.find(query)
+            .select('-password')
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+        
+        return {
+            instructors,
+            total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page
+        };
+    }
+
+    async blockInstructor(instructorId: string): Promise<IInstructor> {
+        const instructor = await Instructor.findByIdAndUpdate(
+            instructorId,
+            { blocked: true },
+            { new: true }
+        ).select('-password');
+
+        if (!instructor) {
+            throw new Error('Instructor not found');
+        }
+
+        return instructor;
+    }
+
+    async unblockInstructor(instructorId: string): Promise<IInstructor> {
+        const instructor = await Instructor.findByIdAndUpdate(
+            instructorId,
+            { blocked: false },
+            { new: true }
+        ).select('-password');
+
+        if (!instructor) {
+            throw new Error('Instructor not found');
+        }
+
+        return instructor;
+    }
+
+    async getProfile(adminId: string) {
+        return this.adminRepository.findById(adminId);
+    }
+
+    async updateProfile(adminId: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
+        return this.adminRepository.updateById(adminId, update);
+    }
+
+    async changePassword(adminId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
+        const admin = await this.adminRepository.findById(adminId);
+        if (!admin) {
+            return { success: false, message: 'Admin not found' };
+        }
+        if (admin.password) {
+            const isMatch = await bcrypt.compare(currentPassword, admin.password);
+            if (!isMatch) {
+                return { success: false, message: 'Current password is incorrect' };
+            }
+        }
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await this.adminRepository.updatePasswordById(adminId, hashed);
+        return { success: true };
+    }
+
+    async refreshToken(token: string): Promise<{ accessToken: string }> {
+        return this.adminRepository.refreshToken(token);
+    }
+
+    async getUserDetailsWithProgress(userId: string): Promise<any> {
+        return this.adminRepository.getUserDetailsWithProgress(userId);
     }
 }

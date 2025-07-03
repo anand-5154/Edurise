@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import {useNavigate,Link} from "react-router-dom"
 import axiosInstance from '../../services/apiService';
@@ -13,10 +13,28 @@ interface FormData {
   phone: string;
 }
 
+interface FormErrors {
+  name?: string;
+  username?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  phone?: string;
+}
+
+interface TouchedFields {
+  name: boolean;
+  username: boolean;
+  email: boolean;
+  password: boolean;
+  confirmPassword: boolean;
+  phone: boolean;
+}
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const UserRegister: React.FC = () => {
-  const [isLoading,setIsLoading]=useState(false)
+const UserRegister = () => {
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     name: '',
     username: '',
@@ -25,9 +43,78 @@ const UserRegister: React.FC = () => {
     confirmPassword: '',
     phone: ''
   });
-  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<TouchedFields>({
+    name: false,
+    username: false,
+    email: false,
+    password: false,
+    confirmPassword: false,
+    phone: false
+  });
 
-  const navigate=useNavigate()
+  const navigate = useNavigate()
+
+  // Validate name
+  const validateName = (name: string): string | undefined => {
+    if (!name.trim()) {
+      return 'Name is required';
+    }
+    return undefined;
+  };
+
+  // Validate username
+  const validateUsername = (username: string): string | undefined => {
+    if (!username.trim()) {
+      return 'Username is required';
+    }
+    if (username.length < 4) {
+      return 'Username must be at least 4 characters';
+    }
+    return undefined;
+  };
+
+  // Validate email
+  const validateEmail = (email: string): string | undefined => {
+    if (!email.trim()) {
+      return 'Email is required';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return 'Invalid email format';
+    }
+    return undefined;
+  };
+
+  // Validate password
+  const validatePassword = (password: string): string | undefined => {
+    if (!password) {
+      return 'Password is required';
+    }
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return undefined;
+  };
+
+  // Validate confirm password
+  const validateConfirmPassword = (password: string, confirmPassword: string): string | undefined => {
+    if (!confirmPassword) {
+      return 'Please confirm your password';
+    }
+    if (password !== confirmPassword) {
+      return 'Passwords do not match';
+    }
+    return undefined;
+  };
+
+  // Validate phone
+  const validatePhone = (phone: string): string | undefined => {
+    if (phone && !/^\+?[\d\s-]{10,15}$/.test(phone)) {
+      return 'Invalid phone number format';
+    }
+    return undefined;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -35,78 +122,91 @@ const UserRegister: React.FC = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user makes changes
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<FormData> = {};
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+  };
+
+  // Real-time validation
+  useEffect(() => {
+    const newErrors: FormErrors = {};
     
-    // Validate name
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-    
-    // Validate username
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 4) {
-      newErrors.username = 'Username must be at least 4 characters';
-    }
-    
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-    
-    // Validate password
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    
-    // Validate confirm password
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    // Validate phone
-    const phoneRegex = /^\+?[\d\s-]{10,15}$/;
-    if (formData.phone && !phoneRegex.test(formData.phone)) {
-      newErrors.phone = 'Invalid phone number format';
-    }
-    
+    if (touched.name) newErrors.name = validateName(formData.name);
+    if (touched.username) newErrors.username = validateUsername(formData.username);
+    if (touched.email) newErrors.email = validateEmail(formData.email);
+    if (touched.password) newErrors.password = validatePassword(formData.password);
+    if (touched.confirmPassword) newErrors.confirmPassword = validateConfirmPassword(formData.password, formData.confirmPassword);
+    if (touched.phone) newErrors.phone = validatePhone(formData.phone);
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  }, [formData, touched]);
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    
+    // Validate all fields
+    newErrors.name = validateName(formData.name);
+    newErrors.username = validateUsername(formData.username);
+    newErrors.email = validateEmail(formData.email);
+    newErrors.password = validatePassword(formData.password);
+    newErrors.confirmPassword = validateConfirmPassword(formData.password, formData.confirmPassword);
+    newErrors.phone = validatePhone(formData.phone);
+    
+    // Update errors state
+    setErrors(newErrors);
+
+    // Check if there are any errors
+    const hasErrors = Object.values(newErrors).some(error => error !== undefined);
+    
+    // Debug log
+    console.log('Validation result:', {
+      errors: newErrors,
+      hasErrors,
+      formData
+    });
+
+    return !hasErrors;
   };
 
   const handleSubmit = async(e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true)
     
-    if (validateForm()) {
-      try {
-      const response = await axiosInstance.post("/users/register",{email:formData.email})
-        if(response && response.status===200){
+    // Mark all fields as touched on submit
+    setTouched({
+      name: true,
+      username: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+      phone: true
+    });
+    
+    // Run validation
+    const isValid = validateForm();
+    
+    if (!isValid) {
+      errorToast('Please fix the form errors before submitting');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axiosInstance.post("/users/register", { email: formData.email })
+      if(response && response.status === 200) {
         successToast((response.data as { message: string }).message)
         localStorage.setItem("signUpData", JSON.stringify(formData))
         navigate("/users/verify-otp")
-        }
-      } catch (error: any) {
-        const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
-        errorToast(errorMessage);
-      } finally {
-        setIsLoading(false);
       }
-    } else {
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      errorToast(errorMessage);
+    } finally {
       setIsLoading(false);
-      errorToast('Please fix the form errors before submitting');
     }
   };
 
@@ -133,10 +233,11 @@ const UserRegister: React.FC = () => {
                 type="text"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border ${touched.name && errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="John Doe"
               />
-              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+              {touched.name && errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
             
             <div>
@@ -147,10 +248,11 @@ const UserRegister: React.FC = () => {
                 type="text"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border ${touched.username && errors.username ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="johndoe123"
               />
-              {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
+              {touched.username && errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
             </div>
             
             <div>
@@ -161,10 +263,11 @@ const UserRegister: React.FC = () => {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border ${touched.email && errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="john@example.com"
               />
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              {touched.email && errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
             
             <div>
@@ -175,10 +278,11 @@ const UserRegister: React.FC = () => {
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border ${touched.phone && errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 placeholder="(123) 456-7890"
               />
-              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+              {touched.phone && errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
             </div>
             
             <div>
@@ -190,9 +294,10 @@ const UserRegister: React.FC = () => {
                 placeholder='••••••••'
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border ${touched.password && errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
               />
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+              {touched.password && errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
             </div>
             
             <div>
@@ -204,9 +309,10 @@ const UserRegister: React.FC = () => {
                 placeholder='••••••••'
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border ${touched.confirmPassword && errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
               />
-              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+              {touched.confirmPassword && errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
             
             <div className="pt-2">

@@ -10,19 +10,29 @@ import {
   ChevronDown,
   Settings,
   LogOut,
-  Bell
+  Bell,
+  Home,
+  UserPlus,
+  Tag
 } from 'lucide-react';
 import { successToast } from './Toast';
+import apiService from '../services/apiService';
 
 const AdminNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [adminData, setAdminData] = useState<{ name?: string }>({});
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token) {
       localStorage.clear();
       window.location.href = '/admin/login';
+    } else {
+      // Fetch admin profile
+      apiService.get('/admin/profile')
+        .then(res => setAdminData(res.data))
+        .catch(() => setAdminData({ name: 'Admin' }));
     }
   }, []);
 
@@ -35,8 +45,7 @@ const AdminNavbar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Users', path: '/admin/users', icon: Users },
-    { name: 'Tutors', path: '/admin/tutors', icon: GraduationCap },
-    { name: 'Tutor Requests', path: '/admin/tutor-requests', icon: Bell },
+    { name: 'Instructors', path: '/admin/instructors', icon: BookOpen },
     { name: 'Courses', path: '/admin/courses', icon: BookOpen },
     { name: 'Categories', path: '/admin/categories', icon: FolderOpen },
   ];
@@ -92,10 +101,12 @@ const AdminNavbar = () => {
             >
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-medium">JD</span>
+                  <span className="text-white font-medium">
+                    {adminData.name ? adminData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'A'}
+                  </span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-white font-medium text-sm">John Doe</p>
+                  <p className="text-white font-medium text-sm">{adminData.name || 'Admin'}</p>
                   <p className="text-blue-200 text-xs">Administrator</p>
                 </div>
               </div>

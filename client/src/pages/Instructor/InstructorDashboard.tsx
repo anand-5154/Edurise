@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axiosInstance from '../../services/apiService';
 import BeatLoader from "react-spinners/BeatLoader";
 import { Users, BookOpen, DollarSign, MessageSquare, Plus } from 'lucide-react';
@@ -42,7 +42,15 @@ const InstructorDashboard = () => {
         const response = await axiosInstance.get('/instructors/dashboard');
         setStats(response.data);
       } catch (error) {
-        errorToast('Failed to fetch dashboard stats');
+        // Set default values instead of showing error toast
+        setStats({
+          totalStudents: 0,
+          totalCourses: 0,
+          totalEarnings: 0,
+          totalMessages: 0,
+          recentCourses: [],
+          recentMessages: []
+        });
         console.error('Error fetching dashboard stats:', error);
       } finally {
         setLoading(false);
@@ -73,6 +81,10 @@ const InstructorDashboard = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
+        </div>
+
+        <div className="flex justify-end mb-6">
+          <Link to="/instructors/settings" className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 font-medium">Settings</Link>
         </div>
 
         {/* Stats Grid */}

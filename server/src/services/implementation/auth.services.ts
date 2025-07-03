@@ -9,6 +9,7 @@ import User from '../../models/implementations/userModel';
 import { generateOTP } from '../../utils/generateOTP';
 import { logger } from '../../utils/logger';
 import { hashPassword } from '../../utils/hashPassword';
+import jwt from 'jsonwebtoken';
 
 
 export class AuthService implements IAuthService{
@@ -115,7 +116,12 @@ export class AuthService implements IAuthService{
            }
 
            // Generate JWT token
-           const token = user.generateAuthToken();
+           const accessToken = user.generateAccessToken();
+           const refreshToken = user.generateRefreshToken();
+
+           // Save refresh token to user
+           user.refreshToken = refreshToken;
+           await user.save();
 
            return {
                user: {
@@ -124,7 +130,8 @@ export class AuthService implements IAuthService{
                    email: user.email,
                    role: user.role
                },
-               token
+               accessToken,
+               refreshToken
            };
        } catch (error: any) {
            logger.error('Login service error:', {
@@ -229,6 +236,26 @@ export class AuthService implements IAuthService{
                email
            });
            throw error;
+       }
+   }
+
+   async refreshToken(token: string): Promise<{ accessToken: string }> {
+       try {
+           const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key') as { id: string };
+           const user = await User.findById(decoded.id);
+
+           if (!user || user.refreshToken !== token) {
+               throw new Error('Invalid refresh token');
+           }
+
+           const accessToken = user.generateAccessToken();
+           return { accessToken };
+       } catch (error: any) {
+           logger.error('Refresh token service error:', {
+               error: error.message,
+               stack: error.stack
+           });
+           throw new Error('Invalid refresh token');
        }
    }
 }

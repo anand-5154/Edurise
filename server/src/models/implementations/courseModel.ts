@@ -11,6 +11,7 @@ export interface ICourse extends Document {
   thumbnail: string;
   demoVideo: string;
   isPublished: boolean;
+  lectures: { title: string; videoUrl: string }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -61,7 +62,13 @@ const courseSchema = new Schema<ICourse>({
   isPublished: {
     type: Boolean,
     default: false
-  }
+  },
+  lectures: [
+    {
+      title: { type: String, required: true },
+      videoUrl: { type: String, required: true }
+    }
+  ]
 }, {
   timestamps: true
 });

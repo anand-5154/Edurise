@@ -7,7 +7,8 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Bell
+  Bell,
+  User as UserIcon
 } from 'lucide-react';
 import axiosInstance from '../services/apiService';
 import { successToast } from './Toast';
@@ -16,7 +17,8 @@ const InstructorNavbar = () => {
   const location = useLocation();
 
   const handleLogout = () => {
-    localStorage.removeItem('instructorToken');
+    localStorage.removeItem('instructorAccessToken');
+    localStorage.removeItem('instructorRefreshToken');
     successToast('Logged out successfully');
     window.location.href = '/instructors/login';
   };
@@ -30,6 +32,7 @@ const InstructorNavbar = () => {
     { name: 'Courses', icon: BookOpen, path: '/instructors/courses' },
     { name: 'Earnings', icon: DollarSign, path: '/instructors/earnings' },
     { name: 'Messages', icon: MessageSquare, path: '/instructors/messages' },
+    { name: 'Profile', icon: UserIcon, path: '/instructors/profile' },
   ];
 
   return (
@@ -62,12 +65,17 @@ const InstructorNavbar = () => {
         </nav>
 
         <div className="absolute bottom-0 w-64 p-4 border-t border-purple-700/30">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white">Settings</p>
-            </div>
-            <Settings className="w-5 h-5 text-purple-200" />
-          </div>
+          <Link
+            to="/instructors/settings"
+            className={`flex items-center px-6 py-3 text-sm font-medium transition-colors duration-200 ${
+              isActive('/instructors/settings')
+                ? 'bg-purple-700/50 text-white'
+                : 'text-purple-100 hover:bg-purple-700/30'
+            }`}
+          >
+            <Settings className="w-5 h-5 mr-3" />
+            Settings
+          </Link>
           <button
             className="flex items-center w-full px-4 py-2 mt-4 text-sm font-medium text-purple-100 hover:bg-purple-700/30 rounded-md"
             onClick={handleLogout}

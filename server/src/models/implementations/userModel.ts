@@ -28,12 +28,18 @@ const userSchema:Schema<IUser>=new Schema({
         type:String,
         sparse:true,
     },
+    profilePicture:{
+        type:String,
+    },
     role:{
         type:String,
         enum:["user","admin","instructor"],
         default:"user"
     },
-    blocked: { type: Boolean, default: false }
+    blocked: { type: Boolean, default: false },
+    refreshToken: {
+        type: String,
+    }
 },
     {
         timestamps:true
@@ -49,11 +55,19 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
     }
 };
 
-userSchema.methods.generateAuthToken = function(): string {
+userSchema.methods.generateAccessToken = function(): string {
     return jwt.sign(
         { id: this._id, email: this.email, role: this.role },
         process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '1d' }
+        { expiresIn: '15m' }
+    );
+};
+
+userSchema.methods.generateRefreshToken = function(): string {
+    return jwt.sign(
+        { id: this._id },
+        process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
+        { expiresIn: '7d' }
     );
 };
 

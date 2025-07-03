@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { Users, BookOpen, AlertCircle, TrendingUp } from 'lucide-react';
 import axiosInstance from '../../services/apiService';
 import BeatLoader from "react-spinners/BeatLoader";
+import { errorToast } from '../../components/Toast';
+import { Link } from 'react-router-dom';
 
 interface DashboardStats {
   totalUsers: number;
   totalInstructors: number;
   totalCourses: number;
   pendingRequests: number;
+  revenue: number;
 }
 
 const AdminDashboard = () => {
@@ -16,16 +19,28 @@ const AdminDashboard = () => {
     totalUsers: 0,
     totalInstructors: 0,
     totalCourses: 0,
-    pendingRequests: 0
+    pendingRequests: 0,
+    revenue: 0
   });
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await axiosInstance.get<DashboardStats>('/admin/stats');
-        setStats(response.data);
-      } catch (error) {
+        if (response.data) {
+          setStats(response.data);
+        }
+      } catch (error: any) {
         console.error('Error fetching dashboard stats:', error);
+        errorToast(error.response?.data?.message || 'Failed to fetch dashboard stats');
+        // Set default values in case of error
+        setStats({
+          totalUsers: 0,
+          totalInstructors: 0,
+          totalCourses: 0,
+          pendingRequests: 0,
+          revenue: 0
+        });
       } finally {
         setLoading(false);
       }
@@ -46,6 +61,10 @@ const AdminDashboard = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
+        
+        <div className="flex justify-end mb-6">
+          <Link to="/admin/settings" className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 font-medium">Settings</Link>
+        </div>
         
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -100,6 +119,21 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Revenue */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  ₹{stats.revenue?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <TrendingUp className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -108,8 +142,7 @@ const AdminDashboard = () => {
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Users</h2>
             <div className="space-y-4">
-              {/* Add recent users list here */}
-              <p className="text-gray-600">Loading recent users...</p>
+              <p className="text-gray-600">No recent users to display</p>
             </div>
           </div>
 
@@ -117,8 +150,7 @@ const AdminDashboard = () => {
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Instructors</h2>
             <div className="space-y-4">
-              {/* Add recent instructors list here */}
-              <p className="text-gray-600">Loading recent instructors...</p>
+              <p className="text-gray-600">No recent instructors to display</p>
             </div>
           </div>
         </div>

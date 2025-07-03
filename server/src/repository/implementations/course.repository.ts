@@ -1,6 +1,7 @@
 import { ICourseRepository, GetCoursesParams } from '../interfaces/course.repository';
 import { ICourse } from '../../models/interfaces/course.interface';
 import Course from '../../models/implementations/courseModel';
+import Enrollment from '../../models/implementations/enrollmentModel';
 
 export class CourseRepository implements ICourseRepository {
   async createCourse(courseData: Partial<ICourse>): Promise<ICourse> {
@@ -40,14 +41,47 @@ export class CourseRepository implements ICourseRepository {
       .populate('category', 'name');
   }
 
-  async getCourses(params: GetCoursesParams): Promise<ICourse[]> {
+  async getCourses(params: GetCoursesParams): Promise<any[]> {
     const { query, page, limit, sort, order } = params;
-    return await Course.find(query)
-      .sort({ [sort]: order === 'asc' ? 1 : -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate('instructor', 'name email')
-      .populate('category', 'name');
+    // Use aggregation to get enrolled user count for each course
+    const courses = await Course.aggregate([
+      { $match: query },
+      { $sort: { [sort]: order === 'asc' ? 1 : -1 } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'enrollments',
+          localField: '_id',
+          foreignField: 'course',
+          as: 'enrollments',
+        },
+      },
+      {
+        $addFields: {
+          enrolledCount: {
+            $size: {
+              $filter: {
+                input: '$enrollments',
+                as: 'enrollment',
+                cond: { $eq: ['$$enrollment.status', 'completed'] },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          enrollments: 0,
+        },
+      },
+    ]);
+    // Populate instructor and category fields
+    await Course.populate(courses, [
+      { path: 'instructor', select: 'name email' },
+      { path: 'category', select: 'name' },
+    ]);
+    return courses;
   }
 
   async countCourses(query: any): Promise<number> {

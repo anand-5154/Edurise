@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axiosInstance from "../services/apiService";
-import { successToast } from "./Toast";
+import { successToast, errorToast } from "./Toast";
 import { useNavigate } from "react-router-dom";
 
 interface OtpPageProps {
@@ -11,25 +11,41 @@ const ResetPassword: React.FC<OtpPageProps> = ({role}) => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate=useNavigate()
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
-    } else {
-      setError("");
-      try{
-        const email=localStorage.getItem("email")
-        const response=await axiosInstance.put(`/${role}/resetpassword`,{email,newPassword,confirmPassword})
-        if(response && response.status===200){
-          successToast((response.data as { message: string }).message)
-          localStorage.removeItem("email")
-          navigate(`/${role}/login`)
-        }
-      }catch(err){
-        setError('Something went wrong. Please try again later.');
+      return;
+    }
+    
+    setError("");
+    setIsLoading(true);
+    try {
+      const email = localStorage.getItem("email");
+      if (!email) {
+        throw new Error("Email not found. Please try the forgot password process again.");
       }
+      
+      const response = await axiosInstance.put(`/${role}/resetpassword`, {
+        email,
+        newPassword,
+        confirmPassword
+      });
+      
+      if (response && response.status === 200) {
+        successToast((response.data as { message: string }).message);
+        localStorage.removeItem("email");
+        navigate(`/${role}/login`);
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Something went wrong. Please try again later.';
+      setError(errorMessage);
+      errorToast(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -46,6 +62,7 @@ const ResetPassword: React.FC<OtpPageProps> = ({role}) => {
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
               required
+              minLength={6}
             />
           </div>
           <div>
@@ -56,14 +73,16 @@ const ResetPassword: React.FC<OtpPageProps> = ({role}) => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
               required
+              minLength={6}
             />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition"
+            disabled={isLoading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Reset Password
+            {isLoading ? "Resetting Password..." : "Reset Password"}
           </button>
         </form>
       </div>

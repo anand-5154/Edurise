@@ -2,8 +2,9 @@ import {Request,Response} from "express"
 import { IAuthController } from "../interfaces/auth.interfaces"
 import { IAuthService } from "../../services/interfaces/auth.services"
 import {httpStatus} from "../../constants/statusCodes"
-import { generateToken } from "../../utils/generateToken"
+import { generateAccessToken, generateRefreshToken } from "../../utils/generateToken"
 import { logger } from "../../utils/logger"
+import User from "../../models/implementations/userModel"
 
 export class Authcontroller implements IAuthController{
     constructor (private authService : IAuthService){
@@ -59,23 +60,34 @@ export class Authcontroller implements IAuthController{
     }
 
     async googleAuth(req: Request, res: Response): Promise<void> {
-      try {
-        if (!req.user) {
-          res.status(httpStatus.UNAUTHORIZED).json({ message: "Authentication failed" });
-          return;
+        try {
+          if (!req.user) {
+            res.status(httpStatus.UNAUTHORIZED).json({ message: "Authentication failed" });
+            return;
+          }
+  
+          const user = await User.findById((req.user as any).id);
+          if (!user) {
+              res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+              return;
+          }
+  
+          const accessToken = generateAccessToken(user._id.toString(), user.role);
+          const refreshToken = generateRefreshToken(user._id.toString());
+  
+          user.refreshToken = refreshToken;
+          await user.save();
+  
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+          
+          // Redirect to frontend with tokens
+          res.redirect(`${frontendUrl}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
+        } catch (error) {
+          console.error('Google auth error:', error);
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+          res.redirect(`${frontendUrl}/login?error=Authentication failed`);
         }
-
-        const token = generateToken((req.user as any).id);
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        
-        // Redirect to frontend with token
-        res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
-      } catch (error) {
-        console.error('Google auth error:', error);
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        res.redirect(`${frontendUrl}/login?error=Authentication failed`);
       }
-    }
 
     async forgotPassword(req: Request, res: Response): Promise<void> {
       try{
@@ -116,5 +128,20 @@ export class Authcontroller implements IAuthController{
       }catch(err:any){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
       }
-  }
+    }
+
+    async refreshToken(req: Request, res: Response): Promise<void> {
+        try {
+            const { refreshToken } = req.body;
+            if (!refreshToken) {
+                res.status(httpStatus.BAD_REQUEST).json({ message: 'Refresh token is required' });
+                return;
+            }
+
+            const result = await this.authService.refreshToken(refreshToken);
+            res.status(httpStatus.OK).json(result);
+        } catch (err: any) {
+            res.status(httpStatus.UNAUTHORIZED).json({ message: err.message });
+        }
+    }
 }

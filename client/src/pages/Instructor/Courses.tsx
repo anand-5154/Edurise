@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, TrendingUp } from 'lucide-react';
 import axiosInstance from '../../services/apiService';
 import { errorToast, successToast } from '../../components/Toast';
 import BeatLoader from "react-spinners/BeatLoader";
@@ -61,6 +61,10 @@ const Courses: React.FC = () => {
 
   const handleView = (courseId: string) => {
     navigate(`/instructors/courses/${courseId}`);
+  };
+
+  const handleProgress = (courseId: string) => {
+    navigate(`/instructors/courses/${courseId}/progress`);
   };
 
   if (isLoading) {
@@ -152,6 +156,13 @@ const Courses: React.FC = () => {
                         title="Edit Course"
                       >
                         <Edit2 className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleProgress(course._id)}
+                        className="p-2 text-gray-400 hover:text-green-600"
+                        title="View Progress"
+                      >
+                        <TrendingUp className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => handleDelete(course._id)}

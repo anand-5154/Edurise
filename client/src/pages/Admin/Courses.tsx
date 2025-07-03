@@ -25,6 +25,7 @@ interface Course {
     name: string;
   };
   createdAt: string;
+  enrolledCount?: number;
 }
 
 interface CoursesResponse {
@@ -139,7 +140,7 @@ const Courses = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <BeatLoader color="#7e22ce" size={30} />
+        <BeatLoader color="#2563eb" size={30} />
       </div>
     );
   }
@@ -241,6 +242,7 @@ const Courses = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instructor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrolled Users</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -273,6 +275,9 @@ const Courses = () => {
                     <div className="text-sm text-gray-900">${course.price}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{course.enrolledCount ?? 0}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                       course.isPublished 
                         ? 'bg-green-100 text-green-800' 
@@ -293,7 +298,7 @@ const Courses = () => {
                         }`}
                       >
                         {isUpdating === course._id ? (
-                          <BeatLoader color="#7e22ce" size={8} />
+                          <BeatLoader color="#2563eb" size={8} />
                         ) : course.isPublished ? (
                           'Unpublish'
                         ) : (
@@ -330,7 +335,7 @@ const Courses = () => {
                 onClick={() => handlePageChange(page)}
                 className={`px-3 py-1 rounded-md ${
                   currentPage === page
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-blue-600 text-white'
                     : 'border border-gray-300 text-gray-600 hover:bg-gray-50'
                 }`}
               >

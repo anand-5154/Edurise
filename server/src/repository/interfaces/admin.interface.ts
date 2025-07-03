@@ -17,5 +17,7 @@ export interface IAdminRepository {
     blockUser(userId: string): Promise<void>;
     unblockUser(userId: string): Promise<void>;
     getDashboardStats(): Promise<DashboardStats>;
-    login(email: string, password: string): Promise<{ token: string; admin: { id: string; email: string; name: string; }; } | null>;
+    login(email: string, password: string): Promise<{ accessToken: string; refreshToken: string; admin: { id: string; email: string; name: string; }; } | null>;
+    refreshToken(token: string): Promise<{ accessToken: string }>;
+    getUserDetailsWithProgress(userId: string): Promise<any>;
 }
