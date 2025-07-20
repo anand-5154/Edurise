@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { httpStatus } from '../constants/statusCodes';
+import { messages } from '../constants/messages';
 
 interface JwtPayload {
   id: string;
@@ -11,39 +12,33 @@ interface JwtPayload {
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: {
+        id: string;
+        email: string;
+        role: string;
+      };
     }
   }
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(httpStatus.UNAUTHORIZED).json({ message: 'No token provided' });
-      return;
-    }
+    const token = req.headers.authorization?.split(' ')[1];
 
-    const token = authHeader.split(' ')[1];
     if (!token) {
-      res.status(httpStatus.UNAUTHORIZED).json({ message: 'No token provided' });
-      return;
+      return res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as JwtPayload;
-    if (!decoded || !decoded.id || !decoded.role) {
-      res.status(httpStatus.UNAUTHORIZED).json({ message: 'Invalid token' });
-      return;
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
+      id: string;
+      email: string;
+      role: string;
+    };
 
-    // Add user info to request
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(httpStatus.UNAUTHORIZED).json({ message: 'Authentication failed' });
+    return res.status(httpStatus.UNAUTHORIZED).json({ message: messages.INVALID_OR_EXPIRED_TOKEN });
   }
 };
 

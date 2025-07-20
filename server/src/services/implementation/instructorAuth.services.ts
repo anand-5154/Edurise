@@ -7,6 +7,7 @@ import { IOtpRepository } from "../../repository/interfaces/otp.interface";
 import { sendMail } from "../../utils/sendMail";
 import { generateAccessToken, generateRefreshToken } from "../../utils/generateToken";
 import jwt from 'jsonwebtoken';
+import { messages } from '../../constants/messages';
 import Instructor from "../../models/implementations/instructorModel";
 
 
@@ -17,7 +18,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
     async registerInstructor(email: string): Promise<void> {
         const existing=await this._instructorAuthRepository.findByEmail(email)
         if(existing){
-            throw new Error("Instructor already exists")
+            throw new Error(messages.INSTRUCTOR_ALREADY_EXISTS)
         }
 
         const otp=generateOtp()
@@ -36,18 +37,18 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         const otpRecord = await this._otpRepository.findOtpbyEmail(email);
 
         if (!otpRecord) {
-            throw new Error("OTP not found. Please request a new OTP.");
+            throw new Error(messages.OTP_NOT_FOUND);
         }
 
         if (otpRecord.otp !== otp) {
-            throw new Error("Invalid OTP. Please check and try again.");
+            throw new Error(messages.INVALID_OTP);
         }
 
         // Check if OTP has expired (10 minutes)
         const otpAge = Date.now() - new Date(otpRecord.createdAt).getTime();
         if (otpAge > 10 * 60 * 1000) { // 10 minutes in milliseconds
             await this._otpRepository.deleteOtpbyEmail(email);
-            throw new Error("OTP has expired. Please request a new OTP.");
+            throw new Error(messages.OTP_EXPIRED);
         }
 
         const hashedPassword = await bcrypt.hash(data.password, 10);
@@ -70,54 +71,27 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         isVerified: boolean;
         accountStatus: string;
     }> {
-        console.log('Login attempt for email:', email);
-
         const instructor = await this._instructorAuthRepository.findByEmail(email);
-        console.log('Instructor found:', instructor);
-
         if (!instructor) {
-            console.error('No account found with this email:', email);
-            throw new Error("No account found with this email. Please check your email or register.");
+            throw new Error(messages.INSTRUCTOR_NOT_FOUND);
         }
-
         if (!instructor.password) {
-            console.error('Account setup incomplete for:', email);
-            throw new Error("Account setup incomplete. Please contact support.");
+            throw new Error(messages.ACCOUNT_SETUP_INCOMPLETE);
         }
-
         const isMatch = await bcrypt.compare(password, instructor.password);
-        console.log('Password match:', isMatch);
-
         if (!isMatch) {
-            console.error('Incorrect password for:', email);
-            throw new Error("Incorrect password. Please try again.");
+            throw new Error(messages.INVALID_CREDENTIALS);
         }
-
         if (instructor.blocked) {
-            console.error('Blocked account:', email);
-            throw new Error("Your account has been blocked due to policy violations. Please contact support for assistance.");
+            throw new Error(messages.ACCOUNT_BLOCKED);
         }
-
         if (instructor.accountStatus === 'rejected') {
-            console.error('Rejected account:', email);
-            throw new Error("Your account has been rejected. Please contact support for more information.");
+            throw new Error(messages.ACCOUNT_REJECTED);
         }
-
         // Generate JWT token with role
         const accessToken = generateAccessToken(instructor._id.toString(), 'instructor');
         const refreshToken = generateRefreshToken(instructor._id.toString());
-
-        // Save refresh token
         instructor.refreshToken = refreshToken;
-        console.log('Saving refresh token for:', email);
-        try {
-            await instructor.save();
-        } catch (err) {
-            console.error('Error saving instructor refresh token:', err);
-            throw err;
-        }
-        console.log('Login successful for:', email);
-
         return {
             instructor,
             accessToken,
@@ -131,7 +105,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         const instructor= await this._instructorAuthRepository.findByEmail(email)
 
         if(!instructor){
-        throw new Error("No Instructor found")
+        throw new Error(messages.INSTRUCTOR_NOT_FOUND)
         }
 
         const otp=generateOtp()
@@ -150,15 +124,15 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         const otpRecord = await this._otpRepository.findOtpbyEmail(email);
 
         if (!otpRecord) {
-            throw new Error("OTP not found");
+            throw new Error(messages.OTP_NOT_FOUND);
         }
 
         if (otpRecord.otp !== otp) {
-            throw new Error("Invalid OTP");
+            throw new Error(messages.INVALID_OTP);
         }
 
         if (otpRecord.expiresAt < new Date()) {
-            throw new Error("OTP expired");
+            throw new Error(messages.OTP_EXPIRED);
         }
 
         await this._otpRepository.deleteOtpbyEmail(email);
@@ -169,13 +143,13 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         const { email, newPassword, confirmPassword } = data;
 
         if (newPassword !== confirmPassword) {
-            throw new Error("Passwords don't match");
+            throw new Error(messages.PASSWORDS_DONT_MATCH);
         }
 
         const instructor=await this._instructorAuthRepository.findByEmail(email)
         
         if(!instructor){
-        throw new Error("User not found")
+        throw new Error(messages.USER_NOT_FOUND)
         }
 
         const hashedPassword=await bcrypt.hash(newPassword,10)
@@ -203,13 +177,13 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
             const instructor = await Instructor.findById(decoded.id);
     
             if (!instructor || instructor.refreshToken !== token) {
-                throw new Error('Invalid refresh token');
+                throw new Error(messages.INVALID_REFRESH_TOKEN);
             }
     
             const accessToken = generateAccessToken(instructor._id.toString(), instructor.role);
             return { accessToken };
         } catch (error: any) {
-            throw new Error('Invalid refresh token');
+            throw new Error(messages.INVALID_REFRESH_TOKEN);
         }
     }
 }
