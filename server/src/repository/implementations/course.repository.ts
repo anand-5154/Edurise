@@ -1,28 +1,31 @@
 import { ICourseRepository, GetCoursesParams } from '../interfaces/course.repository';
 import { ICourse } from '../../models/interfaces/course.interface';
+import { GetAllCoursesParams, GetAllCoursesResult } from '../../services/interfaces/user.services';
 import Course from '../../models/implementations/courseModel';
 import Enrollment from '../../models/implementations/enrollmentModel';
+import { BaseRepository } from './base.repository';
 
-export class CourseRepository implements ICourseRepository {
+export class CourseRepository extends BaseRepository<ICourse> implements ICourseRepository {
+  constructor() {
+    super(Course);
+  }
+
   async createCourse(courseData: Partial<ICourse>): Promise<ICourse> {
-    const course = new Course(courseData);
-    return await course.save();
+    return this.create(courseData);
   }
 
   async getCourseById(courseId: string): Promise<ICourse | null> {
-    return await Course.findById(courseId)
+    return this.model.findById(courseId)
       .populate('instructor', 'name email')
       .populate('category', 'name');
   }
 
   async getCoursesByInstructor(instructorId: string): Promise<ICourse[]> {
-    return await Course.find({ instructor: instructorId })
-      .populate('instructor', 'name email')
-      .populate('category', 'name');
+    return this.model.find({ instructor: instructorId });
   }
 
   async updateCourse(courseId: string, courseData: Partial<ICourse>): Promise<ICourse | null> {
-    return await Course.findByIdAndUpdate(
+    return this.model.findByIdAndUpdate(
       courseId,
       { $set: courseData },
       { new: true }
@@ -31,12 +34,20 @@ export class CourseRepository implements ICourseRepository {
     .populate('category', 'name');
   }
 
+  async updateCourseStatus(courseId: string, isPublished: boolean): Promise<ICourse | null> {
+    return this.model.findByIdAndUpdate(
+      courseId,
+      { isPublished },
+      { new: true }
+    );
+  }
+
   async deleteCourse(courseId: string): Promise<void> {
-    await Course.findByIdAndDelete(courseId);
+    await this.deleteById(courseId);
   }
 
   async getAllCourses(): Promise<ICourse[]> {
-    return await Course.find()
+    return this.model.find()
       .populate('instructor', 'name email')
       .populate('category', 'name');
   }
@@ -85,16 +96,78 @@ export class CourseRepository implements ICourseRepository {
   }
 
   async countCourses(query: any): Promise<number> {
-    return await Course.countDocuments(query);
+    return this.model.countDocuments(query);
   }
 
-  async updateCourseStatus(courseId: string, isPublished: boolean): Promise<ICourse | null> {
-    return await Course.findByIdAndUpdate(
-      courseId,
-      { $set: { isPublished } },
-      { new: true }
-    )
-    .populate('instructor', 'name email')
-    .populate('category', 'name');
+  async getCoursePerformanceReport(): Promise<any[]> {
+    // Aggregate course performance: enrollments and completions per course
+    return this.model.aggregate([
+      {
+        $lookup: {
+          from: 'enrollments',
+          localField: '_id',
+          foreignField: 'course',
+          as: 'enrollments',
+        },
+      },
+      {
+        $addFields: {
+          enrollments: { $size: '$enrollments' },
+          completions: {
+            $size: {
+              $filter: {
+                input: '$enrollments',
+                as: 'enr',
+                cond: { $eq: ['$$enr.status', 'completed'] },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          title: 1,
+          enrollments: 1,
+          completions: 1,
+        },
+      },
+    ]);
+  }
+
+  async getCoursesWithPagination(params: GetAllCoursesParams): Promise<GetAllCoursesResult> {
+    const { page, limit, sort, order, search, category, level, minPrice, maxPrice } = params;
+    const query: any = { isPublished: true };
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (category) query.category = category;
+    if (level) query.level = level;
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query.price = {};
+      if (minPrice !== undefined) query.price.$gte = minPrice;
+      if (maxPrice !== undefined) query.price.$lte = maxPrice;
+    }
+    const total = await Course.countDocuments(query);
+    const courses = await Course.find(query)
+      .sort({ [sort]: order === 'asc' ? 1 : -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('instructor', 'name')
+      .lean();
+    return {
+      courses: courses as ICourse[],
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
+    };
+  }
+
+  async findByIdIfPublished(courseId: string): Promise<ICourse | null> {
+    return Course.findOne({ _id: courseId, isPublished: true })
+      .populate('instructor', 'name email')
+      .select('+demoVideo');
   }
 } 

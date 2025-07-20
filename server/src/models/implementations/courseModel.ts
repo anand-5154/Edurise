@@ -1,5 +1,16 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ILecture {
+  title: string;
+  videoUrl: string;
+  description: string;
+}
+
+export interface IModule {
+  title: string;
+  lectures: ILecture[];
+}
+
 export interface ICourse extends Document {
   title: string;
   description: string;
@@ -11,10 +22,21 @@ export interface ICourse extends Document {
   thumbnail: string;
   demoVideo: string;
   isPublished: boolean;
-  lectures: { title: string; videoUrl: string }[];
+  modules: IModule[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const lectureSchema = new Schema<ILecture>({
+  title: { type: String, required: true },
+  videoUrl: { type: String, required: true },
+  description: { type: String, required: true }
+}, { _id: false });
+
+const moduleSchema = new Schema<IModule>({
+  title: { type: String, required: true },
+  lectures: [lectureSchema]
+}, { _id: false });
 
 const courseSchema = new Schema<ICourse>({
   title: {
@@ -63,12 +85,7 @@ const courseSchema = new Schema<ICourse>({
     type: Boolean,
     default: false
   },
-  lectures: [
-    {
-      title: { type: String, required: true },
-      videoUrl: { type: String, required: true }
-    }
-  ]
+  modules: [moduleSchema]
 }, {
   timestamps: true
 });

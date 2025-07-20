@@ -1,4 +1,5 @@
 import { ICourse } from "../../models/interfaces/course.interface";
+import { GetAllCoursesParams, GetAllCoursesResult } from "../../services/interfaces/user.services";
 
 export interface GetCoursesParams {
   query: any;
@@ -18,4 +19,6 @@ export interface ICourseRepository {
   getCourses(params: GetCoursesParams): Promise<ICourse[]>;
   countCourses(query: any): Promise<number>;
   updateCourseStatus(courseId: string, isPublished: boolean): Promise<ICourse | null>;
+  getCoursesWithPagination(params: GetAllCoursesParams): Promise<GetAllCoursesResult>;
+  findByIdIfPublished(courseId: string): Promise<ICourse | null>;
 } 

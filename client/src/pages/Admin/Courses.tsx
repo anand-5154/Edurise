@@ -306,6 +306,12 @@ const Courses = () => {
                         )}
                       </button>
                       <button
+                        onClick={() => navigate(`/admin/courses/${course._id}/preview`)}
+                        className="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm mr-2"
+                      >
+                        <Eye className="w-4 h-4 mr-1" /> Preview
+                      </button>
+                      <button
                         onClick={() => handleDelete(course._id)}
                         className="text-red-600 hover:text-red-900"
                       >

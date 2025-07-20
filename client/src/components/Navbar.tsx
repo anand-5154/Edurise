@@ -35,7 +35,7 @@ export default function Navbar() {
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-8 text-gray-700 font-medium">
-                <a href="#courses" className="hover:text-purple-600 transition-colors px-2 py-1 rounded-md hover:bg-purple-50">Courses</a>
+                <a href="/courses" className="hover:text-purple-600 transition-colors px-2 py-1 rounded-md hover:bg-purple-50">Courses</a>
                 <a href="#about" className="hover:text-purple-600 transition-colors px-2 py-1 rounded-md hover:bg-purple-50">About</a>
                 <a href="#contact" className="hover:text-purple-600 transition-colors px-2 py-1 rounded-md hover:bg-purple-50">Contact Us</a>
             </div>

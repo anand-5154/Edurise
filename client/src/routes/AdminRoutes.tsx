@@ -12,10 +12,13 @@ import AdminInstructors from "../pages/Admin/AdminInstructors";
 import AdminInstructorRequests from "../pages/Admin/AdminInstructorRequests";
 import AdminProfile from '../pages/Admin/AdminProfile';
 import AdminSettings from '../pages/Admin/AdminSettings';
+import AdminCoursePreview from '../pages/Admin/AdminCoursePreview';
+import AdminUserActivityReport from '../pages/Admin/AdminUserActivityReport';
+import AdminCoursePerformanceReport from '../pages/Admin/AdminCoursePerformanceReport';
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = localStorage.getItem('adminToken');
+  const isAuthenticated = localStorage.getItem('adminAccessToken');
   return isAuthenticated ? <>{children}</> : <Navigate to="/admin/login" />;
 };
 
@@ -41,6 +44,9 @@ const AdminRoutes = () => {
         <Route path="instructor-requests" element={<AdminInstructorRequests />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="courses/:courseId/preview" element={<AdminCoursePreview />} />
+        <Route path="reports/user-activity" element={<AdminUserActivityReport />} />
+        <Route path="reports/course-performance" element={<AdminCoursePerformanceReport />} />
       </Route>
     </Routes>
   );

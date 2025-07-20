@@ -9,7 +9,7 @@ import { errorToast } from '../../components/Toast';
 interface Course {
   _id: string;
   title: string;
-  lectures?: { title: string; videoUrl: string }[];
+  lectures?: { title: string; videoUrl: string; description: string }[];
   thumbnail: string;
 }
 
@@ -95,6 +95,7 @@ const LearningPage: React.FC = () => {
                           <span className="ml-2 text-green-600 text-base font-bold">✔️</span>
                         )}
                       </h3>
+                      <p className="text-gray-700 mb-2">{lecture.description}</p>
                       <VideoPlayer videoUrl={lecture.videoUrl} title={lecture.title} />
                     </div>
                     <div className="mt-4 md:mt-0 md:w-48 flex-shrink-0 flex flex-col items-end">

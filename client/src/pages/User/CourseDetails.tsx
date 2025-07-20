@@ -21,10 +21,15 @@ interface Course {
     name: string;
     email: string;
   };
-  lectures?: { title: string; videoUrl: string }[];
+  lectures?: { title: string; videoUrl: string; description: string }[];
 }
 
-const CourseDetails: React.FC = () => {
+interface CourseDetailsProps {
+  mode?: 'user' | 'admin';
+  fetchEndpoint?: string;
+}
+
+const CourseDetails: React.FC<CourseDetailsProps> = ({ mode = 'user', fetchEndpoint }) => {
   const { courseId } = useParams<{ courseId: string }>();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,22 +42,20 @@ const CourseDetails: React.FC = () => {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        console.log('Fetching course with ID:', courseId);
-        const response = await axiosInstance.get(`/users/courses/${courseId}`);
-        console.log('Course data:', response.data);
+        const endpoint = fetchEndpoint || (mode === 'admin' ? `/admin/courses/${courseId}` : `/users/courses/${courseId}`);
+        const response = await axiosInstance.get(endpoint);
         setCourse(response.data as Course);
       } catch (error: any) {
-        console.error('Error fetching course:', error.response || error);
         errorToast(error.response?.data?.message || 'Failed to fetch course details');
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchCourse();
-  }, [courseId]);
+  }, [courseId, mode, fetchEndpoint]);
 
   useEffect(() => {
+    if (mode === 'admin') return; // Skip enrollment check for admin
     if (courseId) {
       checkUserEnrolled(courseId)
         .then(res => setIsEnrolled((res.data as { enrolled: boolean }).enrolled))
@@ -64,9 +67,10 @@ const CourseDetails: React.FC = () => {
           }
         });
     }
-  }, [courseId]);
+  }, [courseId, mode]);
 
   useEffect(() => {
+    if (mode === 'admin') return; // Skip progress for admin
     if (isEnrolled && courseId) {
       axiosInstance.get(`/users/courses/${courseId}/progress`)
         .then(res => {
@@ -75,10 +79,10 @@ const CourseDetails: React.FC = () => {
         })
         .catch(() => setCompletedLectures([]));
     }
-  }, [isEnrolled, courseId]);
+  }, [isEnrolled, courseId, mode]);
 
   const handleMarkCompleted = async (lectureIdx: number) => {
-    if (!courseId) return;
+    if (!courseId || mode === 'admin') return;
     try {
       await axiosInstance.post(`/users/courses/${courseId}/lectures/${lectureIdx}/complete`);
       setCompletedLectures(prev => [...prev, lectureIdx]);
@@ -171,6 +175,8 @@ const CourseDetails: React.FC = () => {
               </div>
             )}
 
+            {/* Hide user actions in admin mode */}
+            {mode === 'user' && (
             <div className="mt-8">
               {authError ? (
                 <div className="text-red-600 font-semibold mb-4">{authError}</div>
@@ -199,6 +205,7 @@ const CourseDetails: React.FC = () => {
                 </button>
               )}
             </div>
+            )}
           </div>
         </div>
       </div>

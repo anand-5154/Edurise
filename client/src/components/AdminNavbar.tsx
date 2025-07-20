@@ -24,7 +24,7 @@ const AdminNavbar = () => {
   const [adminData, setAdminData] = useState<{ name?: string }>({});
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('adminAccessToken');
     if (!token) {
       localStorage.clear();
       window.location.href = '/admin/login';
@@ -48,6 +48,11 @@ const AdminNavbar = () => {
     { name: 'Instructors', path: '/admin/instructors', icon: BookOpen },
     { name: 'Courses', path: '/admin/courses', icon: BookOpen },
     { name: 'Categories', path: '/admin/categories', icon: FolderOpen },
+  ];
+
+  const reportItems = [
+    { name: 'User Activity Report', path: '/admin/reports/user-activity', icon: Users },
+    { name: 'Course Performance Report', path: '/admin/reports/course-performance', icon: GraduationCap },
   ];
 
   return (
@@ -83,6 +88,29 @@ const AdminNavbar = () => {
                   </Link>
                 );
               })}
+            </div>
+            <div className="mt-8">
+              <p className="text-blue-200 text-xs font-semibold mb-2 ml-2">Reports</p>
+              <div className="space-y-2">
+                {reportItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      className={`${
+                        isActive
+                        ? 'bg-blue-700 bg-opacity-70 text-white shadow-lg border-r-4 border-blue-400'
+                        : 'text-blue-100 hover:bg-blue-700 hover:bg-opacity-50 hover:text-white'
+                      } w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group`}
+                    >
+                      <Icon className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </nav>
 

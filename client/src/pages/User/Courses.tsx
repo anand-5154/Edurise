@@ -53,6 +53,10 @@ const Courses = () => {
   const [level, setLevel] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [categoryInput, setCategoryInput] = useState(category);
+  const [levelInput, setLevelInput] = useState(level);
+  const [minPriceInput, setMinPriceInput] = useState(minPrice);
+  const [maxPriceInput, setMaxPriceInput] = useState(maxPrice);
 
   useEffect(() => {
     fetchCategories();
@@ -117,6 +121,27 @@ const Courses = () => {
     navigate(`/courses/${courseId}`);
   };
 
+  const handleApplyFilters = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCategory(categoryInput);
+    setLevel(levelInput);
+    setMinPrice(minPriceInput);
+    setMaxPrice(maxPriceInput);
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setCategoryInput('');
+    setLevelInput('');
+    setMinPriceInput('');
+    setMaxPriceInput('');
+    setCategory('');
+    setLevel('');
+    setMinPrice('');
+    setMaxPrice('');
+    setCurrentPage(1);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -136,7 +161,7 @@ const Courses = () => {
         <div className="flex flex-col md:flex-row gap-8">
           {/* Sidebar Filters */}
           <aside className="md:w-72 w-full bg-white rounded-xl shadow-lg p-6 mb-6 md:mb-0 flex-shrink-0 border border-gray-200">
-            <form onSubmit={handleSearch} className="space-y-6">
+            <form onSubmit={handleApplyFilters} className="space-y-6">
               {/* Search */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Search</label>
@@ -155,8 +180,8 @@ const Courses = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
                 <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  value={categoryInput}
+                  onChange={(e) => setCategoryInput(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">All Categories</option>
@@ -171,8 +196,8 @@ const Courses = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Level</label>
                 <select
-                  value={level}
-                  onChange={(e) => setLevel(e.target.value)}
+                  value={levelInput}
+                  onChange={(e) => setLevelInput(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">All Levels</option>
@@ -188,20 +213,23 @@ const Courses = () => {
                   <input
                     type="number"
                     placeholder="Min"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
+                    value={minPriceInput}
+                    onChange={(e) => setMinPriceInput(e.target.value)}
                     className="w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                   <input
                     type="number"
                     placeholder="Max"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
+                    value={maxPriceInput}
+                    onChange={(e) => setMaxPriceInput(e.target.value)}
                     className="w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
               </div>
-              <button type="submit" className="w-full bg-purple-600 text-white font-semibold py-2 rounded-md hover:bg-purple-700 transition">Apply Filters</button>
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 bg-purple-600 text-white font-semibold py-2 rounded-md hover:bg-purple-700 transition">Apply Filters</button>
+                <button type="button" onClick={handleClearFilters} className="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 rounded-md hover:bg-gray-300 transition">Clear Filters</button>
+              </div>
             </form>
           </aside>
 

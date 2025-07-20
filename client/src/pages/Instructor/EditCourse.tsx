@@ -18,7 +18,7 @@ interface Course {
   duration: number;
   thumbnail: string;
   demoVideo: string;
-  lectures?: { title: string; videoUrl: string }[];
+  lectures?: { title: string; videoUrl: string; description: string }[];
 }
 
 const EditCourse: React.FC = () => {
@@ -38,7 +38,8 @@ const EditCourse: React.FC = () => {
     demoVideo: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [lectures, setLectures] = useState([{ title: '', videoUrl: '' }]);
+  const [lectures, setLectures] = useState([{ title: '', videoUrl: '', description: '' }]);
+  const [uploading, setUploading] = useState({ thumbnail: false, demoVideo: false, lectures: [] as boolean[] });
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -68,7 +69,7 @@ const EditCourse: React.FC = () => {
           thumbnail: courseData.thumbnail || '',
           demoVideo: courseData.demoVideo || ''
         });
-        setLectures(courseData.lectures && courseData.lectures.length > 0 ? courseData.lectures : [{ title: '', videoUrl: '' }]);
+        setLectures(courseData.lectures && courseData.lectures.length > 0 ? courseData.lectures : [{ title: '', videoUrl: '', description: '' }]);
       } catch (error: any) {
         console.error('Error fetching course:', error.response || error);
         errorToast(error.response?.data?.message || 'Failed to fetch course details');
@@ -98,7 +99,7 @@ const EditCourse: React.FC = () => {
     setLectures(prev => prev.map((lec, i) => i === index ? { ...lec, [field]: value } : lec));
   };
 
-  const addLecture = () => setLectures(prev => [...prev, { title: '', videoUrl: '' }]);
+  const addLecture = () => setLectures(prev => [...prev, { title: '', videoUrl: '', description: '' }]);
 
   const removeLecture = (index: number) => setLectures(prev => prev.filter((_, i) => i !== index));
 
@@ -124,6 +125,52 @@ const EditCourse: React.FC = () => {
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(prev => ({ ...prev, thumbnail: true }));
+    const url = await uploadMediaToServer(file);
+    setUploading(prev => ({ ...prev, thumbnail: false }));
+    if (url) setFormData(prev => ({ ...prev, thumbnail: url }));
+  };
+  const handleDemoVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(prev => ({ ...prev, demoVideo: true }));
+    const url = await uploadMediaToServer(file);
+    setUploading(prev => ({ ...prev, demoVideo: false }));
+    if (url) setFormData(prev => ({ ...prev, demoVideo: url }));
+  };
+  const handleLectureVideoChange = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(prev => {
+      const arr = [...prev.lectures];
+      arr[index] = true;
+      return { ...prev, lectures: arr };
+    });
+    const url = await uploadMediaToServer(file);
+    setUploading(prev => {
+      const arr = [...prev.lectures];
+      arr[index] = false;
+      return { ...prev, lectures: arr };
+    });
+    if (url) setLectures(prev => prev.map((lec, i) => i === index ? { ...lec, videoUrl: url } : lec));
+  };
+  const uploadMediaToServer = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('media', file);
+    try {
+      const response = await axiosInstance.post('/instructors/upload-course-media', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data.url;
+    } catch (err) {
+      errorToast('Failed to upload file');
+      return null;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -282,35 +329,36 @@ const EditCourse: React.FC = () => {
 
           <div>
             <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-700">
-              Thumbnail URL
+              Thumbnail
             </label>
             <input
               id="thumbnail"
               name="thumbnail"
-              type="text"
-              value={formData.thumbnail}
-              onChange={handleChange}
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="https://example.com/thumbnail.jpg"
             />
+            {uploading.thumbnail && <p className="text-sm text-gray-500">Uploading...</p>}
+            {formData.thumbnail && <img src={formData.thumbnail} alt="Thumbnail preview" className="mt-2 h-24 rounded" />}
             {errors.thumbnail && <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>}
           </div>
 
           <div>
             <label htmlFor="demoVideo" className="block text-sm font-medium text-gray-700">
-              Demo Video URL
+              Demo Video
             </label>
             <input
               id="demoVideo"
               name="demoVideo"
-              type="url"
-              value={formData.demoVideo}
-              onChange={handleChange}
+              type="file"
+              accept="video/*"
+              onChange={handleDemoVideoChange}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="https://res.cloudinary.com/your-cloud/video/upload/your-video"
             />
+            {uploading.demoVideo && <p className="text-sm text-gray-500">Uploading...</p>}
+            {formData.demoVideo && <video src={formData.demoVideo} controls className="mt-2 h-24 rounded" />}
             {errors.demoVideo && <p className="mt-1 text-sm text-red-600">{errors.demoVideo}</p>}
-            <p className="mt-1 text-sm text-gray-500">Upload your demo video to Cloudinary and paste the URL here</p>
           </div>
 
           <div>
@@ -328,13 +376,24 @@ const EditCourse: React.FC = () => {
                   {errors[`lectureTitle${idx}`] && <p className="text-sm text-red-600">{errors[`lectureTitle${idx}`]}</p>}
                 </div>
                 <div className="mb-2">
+                  <textarea
+                    placeholder="Lecture Description"
+                    value={lec.description}
+                    onChange={e => handleLectureChange(idx, 'description', e.target.value)}
+                    className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
+                    rows={2}
+                  />
+                  {errors[`lectureDescription${idx}`] && <p className="text-sm text-red-600">{errors[`lectureDescription${idx}`]}</p>}
+                </div>
+                <div className="mb-2">
                   <input
-                    type="text"
-                    placeholder="Video URL"
-                    value={lec.videoUrl}
-                    onChange={e => handleLectureChange(idx, 'videoUrl', e.target.value)}
+                    type="file"
+                    accept="video/*"
+                    onChange={e => handleLectureVideoChange(idx, e)}
                     className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
                   />
+                  {uploading.lectures[idx] && <p className="text-sm text-gray-500">Uploading...</p>}
+                  {lec.videoUrl && <video src={lec.videoUrl} controls className="mt-2 h-20 rounded" />}
                   {errors[`lectureUrl${idx}`] && <p className="text-sm text-red-600">{errors[`lectureUrl${idx}`]}</p>}
                 </div>
                 {lectures.length > 1 && (

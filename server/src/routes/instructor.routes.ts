@@ -9,6 +9,7 @@ import { authMiddleware, roleMiddleware } from "../middleware/auth.middleware"
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { httpStatus } from "../constants/statusCodes";
 
 
 const instructorAuthRepository=new InstructorAuth()
@@ -35,6 +36,20 @@ const storage = new CloudinaryStorage({
   },
 });
 const upload = multer({ storage });
+
+const courseMediaStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    // Use original filename, but prefix with course-media/
+    const ext = file.originalname.split('.').pop();
+    return {
+      public_id: `course-media/${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`,
+      resource_type: 'auto',
+      format: ext,
+    };
+  },
+});
+const uploadCourseMedia = multer({ storage: courseMediaStorage });
 
 router.post("/register",instructorAuthController.signup.bind(instructorAuthController))
 router.post("/login",instructorAuthController.signin.bind(instructorAuthController))
@@ -76,6 +91,20 @@ router.put(
   authMiddleware,
   roleMiddleware(['instructor']),
   instructorController.changePassword.bind(instructorController)
+);
+
+router.post(
+  '/upload-course-media',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  uploadCourseMedia.single('media'),
+  (req: any, res) => {
+    if (!req.file || !req.file.path) {
+      res.status(httpStatus.BAD_REQUEST).json({ message: 'No file uploaded' });
+      return;
+    }
+    res.status(httpStatus.OK).json({ url: req.file.path });
+  }
 );
 
 export default router

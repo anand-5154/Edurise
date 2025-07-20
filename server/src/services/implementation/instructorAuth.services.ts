@@ -11,18 +11,18 @@ import Instructor from "../../models/implementations/instructorModel";
 
 
 export class InstructorAuthSerivce implements IInstructorAuthService{
-    constructor(private instructorAuthRepository:IInstructorAuthRepository,private otpRepository:IOtpRepository){
+    constructor(private _instructorAuthRepository:IInstructorAuthRepository,private _otpRepository:IOtpRepository){
     }
 
     async registerInstructor(email: string): Promise<void> {
-        const existing=await this.instructorAuthRepository.findByEmail(email)
+        const existing=await this._instructorAuthRepository.findByEmail(email)
         if(existing){
             throw new Error("Instructor already exists")
         }
 
         const otp=generateOtp()
 
-        await this.otpRepository.saveOTP({
+        await this._otpRepository.saveOTP({
             email:email,
             otp:otp,
             expiresAt:otpExpiry
@@ -33,7 +33,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
 
     async verifyOtp(data: IInstructor & { otp: string; }): Promise<IInstructor> {
         const { email, otp } = data;
-        const otpRecord = await this.otpRepository.findOtpbyEmail(email);
+        const otpRecord = await this._otpRepository.findOtpbyEmail(email);
 
         if (!otpRecord) {
             throw new Error("OTP not found. Please request a new OTP.");
@@ -46,19 +46,19 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         // Check if OTP has expired (10 minutes)
         const otpAge = Date.now() - new Date(otpRecord.createdAt).getTime();
         if (otpAge > 10 * 60 * 1000) { // 10 minutes in milliseconds
-            await this.otpRepository.deleteOtpbyEmail(email);
+            await this._otpRepository.deleteOtpbyEmail(email);
             throw new Error("OTP has expired. Please request a new OTP.");
         }
 
         const hashedPassword = await bcrypt.hash(data.password, 10);
-        const instructor = await this.instructorAuthRepository.createInstructor({
+        const instructor = await this._instructorAuthRepository.createInstructor({
             ...data,
             password: hashedPassword,
             isVerified: false,
             accountStatus: 'pending'
         });
 
-        await this.otpRepository.deleteOtpbyEmail(email);
+        await this._otpRepository.deleteOtpbyEmail(email);
 
         return instructor;
     }
@@ -72,7 +72,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
     }> {
         console.log('Login attempt for email:', email);
 
-        const instructor = await this.instructorAuthRepository.findByEmail(email);
+        const instructor = await this._instructorAuthRepository.findByEmail(email);
         console.log('Instructor found:', instructor);
 
         if (!instructor) {
@@ -128,7 +128,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
     }
 
     async handleForgotPassword(email: string): Promise<void> {
-        const instructor= await this.instructorAuthRepository.findByEmail(email)
+        const instructor= await this._instructorAuthRepository.findByEmail(email)
 
         if(!instructor){
         throw new Error("No Instructor found")
@@ -136,7 +136,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
 
         const otp=generateOtp()
 
-        await this.otpRepository.saveOTP({
+        await this._otpRepository.saveOTP({
             email:email,
             otp:otp,
             expiresAt:otpExpiry
@@ -147,7 +147,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
 
     async verifyForgotOtp(data: { email: string; otp: string }): Promise<boolean> {
         const { email, otp } = data;
-        const otpRecord = await this.otpRepository.findOtpbyEmail(email);
+        const otpRecord = await this._otpRepository.findOtpbyEmail(email);
 
         if (!otpRecord) {
             throw new Error("OTP not found");
@@ -161,7 +161,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
             throw new Error("OTP expired");
         }
 
-        await this.otpRepository.deleteOtpbyEmail(email);
+        await this._otpRepository.deleteOtpbyEmail(email);
         return true;
     }
 
@@ -172,7 +172,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
             throw new Error("Passwords don't match");
         }
 
-        const instructor=await this.instructorAuthRepository.findByEmail(email)
+        const instructor=await this._instructorAuthRepository.findByEmail(email)
         
         if(!instructor){
         throw new Error("User not found")
@@ -180,7 +180,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
 
         const hashedPassword=await bcrypt.hash(newPassword,10)
 
-        await this.instructorAuthRepository.updatePassword(email, hashedPassword)
+        await this._instructorAuthRepository.updatePassword(email, hashedPassword)
 
         return true
     }
@@ -188,7 +188,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
     async handleResendOtp(email: string): Promise<void> {
         const otp=generateOtp()
 
-        await this.otpRepository.saveOTP({
+        await this._otpRepository.saveOTP({
         email:email,
         otp:otp,
         expiresAt:otpExpiry

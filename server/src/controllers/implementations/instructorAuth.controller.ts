@@ -5,13 +5,13 @@ import { Request, Response } from "express";
 import { httpStatus } from "../../constants/statusCodes";
 
 export class InstructorAuthController implements IInstructorController{
-    constructor(private instructorAuthService:IInstructorAuthService){
+    constructor(private _instructorAuthService:IInstructorAuthService){
     }
 
     async signup(req: Request, res: Response): Promise<void> {
         try{
             const {email}=req.body
-            await this.instructorAuthService.registerInstructor(email)
+            await this._instructorAuthService.registerInstructor(email)
             res.status(httpStatus.OK).json({message:"OTP sent Successfully"})
         }catch(err:any){
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
@@ -29,7 +29,7 @@ export class InstructorAuthController implements IInstructorController{
                 return;
             }
 
-            const result = await this.instructorAuthService.loginInstructor(email, password);
+            const result = await this._instructorAuthService.loginInstructor(email, password);
             res.status(httpStatus.OK).json({ 
                 ...result,
                 message: "Login successful"
@@ -55,7 +55,7 @@ export class InstructorAuthController implements IInstructorController{
     async verifyOtp(req: Request, res: Response): Promise<void> {
       try{
         const instructorData=req.body
-        const user=await this.instructorAuthService.verifyOtp(instructorData)
+        const user=await this._instructorAuthService.verifyOtp(instructorData)
         res.status(httpStatus.CREATED).json({user,message:"Instructor Registered Successfully, Waiting for approval"})
       }catch(err:any){
         console.log(err.message)
@@ -66,7 +66,7 @@ export class InstructorAuthController implements IInstructorController{
     async forgotPassword(req: Request, res: Response): Promise<void> {
         try{
         const {email}=req.body
-        const user = await this.instructorAuthService.handleForgotPassword(email)
+        const user = await this._instructorAuthService.handleForgotPassword(email)
 
         res.status(httpStatus.OK).json({message:"OTP Sent Successfully"})
       }catch(err){
@@ -77,7 +77,7 @@ export class InstructorAuthController implements IInstructorController{
     async verifyForgotOtp(req: Request, res: Response): Promise<void> {
         try {
             const data = req.body;
-            await this.instructorAuthService.verifyForgotOtp(data);
+            await this._instructorAuthService.verifyForgotOtp(data);
             res.status(httpStatus.OK).json({ message: 'OTP verified.' });
         } catch (err) {
             res.status(httpStatus.NOT_FOUND).json(err);
@@ -87,7 +87,7 @@ export class InstructorAuthController implements IInstructorController{
     async resetPassword(req: Request, res: Response): Promise<void> {
         try{
         const data=req.body
-        await this.instructorAuthService.handleResetPassword(data)
+        await this._instructorAuthService.handleResetPassword(data)
         res.status(httpStatus.OK).json({message:"Password resetted successfully"})
       }catch(err){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
@@ -97,7 +97,7 @@ export class InstructorAuthController implements IInstructorController{
     async resentOtp(req: Request, res: Response): Promise<void> {
         try{
         let {email}=req.body
-        await this.instructorAuthService.handleResendOtp(email)
+        await this._instructorAuthService.handleResendOtp(email)
         res.status(httpStatus.OK).json({message:"OTP resent Successsfully!"})
       }catch(err:any){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
@@ -112,7 +112,7 @@ export class InstructorAuthController implements IInstructorController{
                 return;
             }
     
-            const result = await this.instructorAuthService.refreshToken(refreshToken);
+            const result = await this._instructorAuthService.refreshToken(refreshToken);
             res.status(httpStatus.OK).json(result);
         } catch (err: any) {
             res.status(httpStatus.UNAUTHORIZED).json({ message: err.message });

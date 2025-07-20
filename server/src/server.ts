@@ -9,6 +9,7 @@ import Database from "./config/db.config"
 import passport from "./config/passport.config"
 import nocache from "nocache"
 import session from "express-session"
+import { httpStatus } from "./constants/statusCodes"
 
 import paymentRoutes from './routes/payment.routes';
 
@@ -68,7 +69,7 @@ server.listen(process.env.PORT, () => {
 // Global error handler
 app.use((err: any, req: any, res: any, next: any) => {
   console.error('Global error handler:', err);
-  res.status(500).json({
+  res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
     message: 'Internal Server Error',
     error: err && err.message ? err.message : err
   });

@@ -14,6 +14,7 @@ interface InstructorData {
   createdAt: string;
   updatedAt: string;
   googleId?: string;
+  education?: string; // <-- Add this line
 }
 
 const InstructorProfile: React.FC = () => {
@@ -303,6 +304,22 @@ const InstructorProfile: React.FC = () => {
                   />
                 ) : (
                   <p className="text-gray-900">{instructorData.phone || 'Not provided'}</p>
+                )}
+              </div>
+              {/* Education Field */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Education</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="education"
+                    value={editedData.education || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your education details"
+                  />
+                ) : (
+                  <p className="text-gray-900">{instructorData.education || 'Not provided'}</p>
                 )}
               </div>
             </div>

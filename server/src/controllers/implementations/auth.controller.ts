@@ -4,17 +4,17 @@ import { IAuthService } from "../../services/interfaces/auth.services"
 import {httpStatus} from "../../constants/statusCodes"
 import { generateAccessToken, generateRefreshToken } from "../../utils/generateToken"
 import { logger } from "../../utils/logger"
-import User from "../../models/implementations/userModel"
+import { messages } from "../../constants/messages";
 
 export class Authcontroller implements IAuthController{
-    constructor (private authService : IAuthService){
+    constructor (private _authService : IAuthService){
     }
 
     async signup(req: Request, res: Response): Promise<void> {
         try {
             const { email } = req.body;
-            await this.authService.registerUser(email);
-            res.status(httpStatus.OK).json({ message: "OTP sent successfully" });
+            await this._authService.registerUser(email);
+            res.status(httpStatus.OK).json({ message: messages.OTP_SENT });
         } catch (err: any) {
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
         }
@@ -26,11 +26,11 @@ export class Authcontroller implements IAuthController{
         
         // Validate request body
         if (!email || !password) {
-            res.status(httpStatus.BAD_REQUEST).json({ message: 'Email and password are required' });
+            res.status(httpStatus.BAD_REQUEST).json({ message: messages.ALL_FIELDS_REQUIRED });
             return;
         }
 
-        const result = await this.authService.loginUser({ email, password });
+        const result = await this._authService.loginUser({ email, password });
         res.status(httpStatus.OK).json(result);
       } catch (err: any) {
         logger.error('Login controller error:', {
@@ -38,12 +38,12 @@ export class Authcontroller implements IAuthController{
             stack: err.stack
         });
 
-        if (err.message === 'Invalid credentials' || err.message === 'Invalid email format') {
+        if (err.message === messages.INVALID_CREDENTIALS || err.message === messages.INVALID_EMAIL_FORMAT) {
             res.status(httpStatus.UNAUTHORIZED).json({ message: err.message });
         } else if (err.message.includes('blocked')) {
             res.status(httpStatus.FORBIDDEN).json({ message: err.message });
         } else {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'An error occurred during login' });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.INTERNAL_SERVER_ERROR });
         }
       }
     }
@@ -51,9 +51,8 @@ export class Authcontroller implements IAuthController{
     async verifyOtp(req: Request, res: Response): Promise<void> {
       try{
         const userData=req.body
-        console.log(userData)
-        const user=await this.authService.verifyOtp(userData)
-        res.status(httpStatus.CREATED).json({user,message:"User Registered Successfully"})
+        const user=await this._authService.verifyOtp(userData)
+        res.status(httpStatus.CREATED).json({user,message:messages.USER_REGISTERED})
       }catch(err){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
       }
@@ -62,39 +61,28 @@ export class Authcontroller implements IAuthController{
     async googleAuth(req: Request, res: Response): Promise<void> {
         try {
           if (!req.user) {
-            res.status(httpStatus.UNAUTHORIZED).json({ message: "Authentication failed" });
+            res.status(httpStatus.UNAUTHORIZED).json({ message: messages.AUTH_FAILED });
             return;
           }
-  
-          const user = await User.findById((req.user as any).id);
-          if (!user) {
-              res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+          const result = await this._authService.handleGoogleAuth(req.user);
+          if (!result) {
+              res.status(httpStatus.NOT_FOUND).json({ message: messages.USER_NOT_FOUND });
               return;
           }
-  
-          const accessToken = generateAccessToken(user._id.toString(), user.role);
-          const refreshToken = generateRefreshToken(user._id.toString());
-  
-          user.refreshToken = refreshToken;
-          await user.save();
-  
-          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-          
-          // Redirect to frontend with tokens
-          res.redirect(`${frontendUrl}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
+          const { accessToken, refreshToken, redirectUrl } = result;
+          res.redirect(`${redirectUrl}?accessToken=${accessToken}&refreshToken=${refreshToken}`);
         } catch (error) {
           console.error('Google auth error:', error);
           const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-          res.redirect(`${frontendUrl}/login?error=Authentication failed`);
+          res.redirect(`${frontendUrl}/login?error=${messages.AUTH_FAILED}`);
         }
       }
 
     async forgotPassword(req: Request, res: Response): Promise<void> {
       try{
         const {email}=req.body
-        const user = await this.authService.handleForgotPassword(email)
-
-        res.status(httpStatus.OK).json({message:"OTP Sent Successfully"})
+        await this._authService.handleForgotPassword(email)
+        res.status(httpStatus.OK).json({message:messages.OTP_SENT})
       }catch(err){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
       }
@@ -103,8 +91,8 @@ export class Authcontroller implements IAuthController{
     async verifyForgotOtp(req: Request, res: Response): Promise<void> {
       try{
         const data=req.body
-        const userData=await this.authService.verifyForgotOtp(data)
-        res.status(httpStatus.OK).json({ message: 'OTP verified.'})
+        await this._authService.verifyForgotOtp(data)
+        res.status(httpStatus.OK).json({ message: messages.OTP_VERIFIED})
       }catch(err){
         res.status(httpStatus.NOT_FOUND).json(err)
       }
@@ -113,8 +101,8 @@ export class Authcontroller implements IAuthController{
     async resetPassword(req: Request, res: Response): Promise<void> {
       try{
         const data=req.body
-        await this.authService.handleResetPassword(data)
-        res.status(httpStatus.OK).json({message:"Password resetted successfully"})
+        await this._authService.handleResetPassword(data)
+        res.status(httpStatus.OK).json({message:messages.PASSWORD_RESET})
       }catch(err){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
       }
@@ -123,8 +111,8 @@ export class Authcontroller implements IAuthController{
     async resentOtp(req: Request, res: Response): Promise<void> {
       try{
         let {email}=req.body
-        await this.authService.handleResendOtp(email)
-        res.status(httpStatus.OK).json({message:"OTP resent Successsfully!"})
+        await this._authService.handleResendOtp(email)
+        res.status(httpStatus.OK).json({message:messages.OTP_RESENT})
       }catch(err:any){
         res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
       }
@@ -134,11 +122,10 @@ export class Authcontroller implements IAuthController{
         try {
             const { refreshToken } = req.body;
             if (!refreshToken) {
-                res.status(httpStatus.BAD_REQUEST).json({ message: 'Refresh token is required' });
+                res.status(httpStatus.BAD_REQUEST).json({ message: messages.TOKEN_REQUIRED });
                 return;
             }
-
-            const result = await this.authService.refreshToken(refreshToken);
+            const result = await this._authService.refreshToken(refreshToken);
             res.status(httpStatus.OK).json(result);
         } catch (err: any) {
             res.status(httpStatus.UNAUTHORIZED).json({ message: err.message });

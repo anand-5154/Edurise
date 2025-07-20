@@ -5,30 +5,33 @@ import generateOtp,{otpExpiry} from "../../utils/otpGenerator"
 import { sendMail } from "../../utils/sendMail"
 import bcrypt from "bcrypt"
 import { IOtpRepository } from "../../repository/interfaces/otp.interface"
-import User from '../../models/implementations/userModel';
+import { IUserRepository } from "../../repository/interfaces/user.interface";
 import { generateOTP } from '../../utils/generateOTP';
 import { logger } from '../../utils/logger';
 import { hashPassword } from '../../utils/hashPassword';
 import jwt from 'jsonwebtoken';
+import { messages } from '../../constants/messages';
 
 
 export class AuthService implements IAuthService{
 
-    constructor(private userRepository:IAuthRepository,private otpRepository:IOtpRepository){
-    }
+    constructor(
+        private _userRepository: IUserRepository,
+        private _otpRepository: IOtpRepository
+    ){}
 
     async registerUser(email: string): Promise<void> {
         try {
             // Validate email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                throw new Error('Invalid email format');
+                throw new Error(messages.INVALID_EMAIL_FORMAT);
             }
 
             // Check if user already exists
-            const existingUser = await User.findOne({ email });
+            const existingUser = await this._userRepository.findByEmail(email);
             if (existingUser) {
-                throw new Error('User already exists');
+                throw new Error(messages.USER_ALREADY_EXISTS);
             }
 
             // Generate OTP
@@ -36,7 +39,7 @@ export class AuthService implements IAuthService{
             const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
             // Save OTP
-            await this.otpRepository.saveOTP({
+            await this._otpRepository.saveOTP({
                 email,
                 otp,
                 expiresAt: otpExpiry
@@ -46,8 +49,8 @@ export class AuthService implements IAuthService{
             try {
                 await sendMail({
                     to: email,
-                    subject: 'Verify your email',
-                    text: `Your OTP is: ${otp}. It will expire in 10 minutes.`
+                    subject: messages.VERIFY_EMAIL_SUBJECT,
+                    text: `${messages.YOUR_OTP_IS}: ${otp}. ${messages.IT_WILL_EXPIRE_IN} 10 ${messages.MINUTES}.`
                 });
                 logger.info('OTP email sent successfully:', { email });
             } catch (emailError: any) {
@@ -55,7 +58,7 @@ export class AuthService implements IAuthService{
                     error: emailError.message,
                     email
                 });
-                throw new Error('Failed to send OTP email');
+                throw new Error(messages.FAILED_TO_SEND_OTP_EMAIL);
             }
         } catch (error: any) {
             logger.error('Registration service error:', {
@@ -71,21 +74,21 @@ export class AuthService implements IAuthService{
         console.log('Verifying OTP for email:', data.email)
         console.log('Received OTP:', data.otp)
 
-        const otpRecord = await this.otpRepository.findOtpbyEmail(data.email)
+        const otpRecord = await this._otpRepository.findOtpbyEmail(data.email)
         console.log('Stored OTP:', otpRecord?.otp)
 
-        if(!otpRecord) throw new Error("OTP not found")
+        if(!otpRecord) throw new Error(messages.OTP_NOT_FOUND)
 
-        if(otpRecord.otp!==data.otp) throw new Error("Invalid OTP")
+        if(otpRecord.otp!==data.otp) throw new Error(messages.INVALID_OTP)
 
         const hashedPassword=await bcrypt.hash(data.password,10)
 
-        const user=await this.userRepository.createUser({
+        const user=await this._userRepository.createUser({
             ...data,
             password:hashedPassword
         })
 
-        await this.otpRepository.deleteOtpbyEmail(data.email)
+        await this._otpRepository.deleteOtpbyEmail(data.email)
 
         return user
     }
@@ -95,24 +98,24 @@ export class AuthService implements IAuthService{
            // Validate email format
            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
            if (!emailRegex.test(credentials.email)) {
-               throw new Error('Invalid email format');
+               throw new Error(messages.INVALID_EMAIL_FORMAT);
            }
 
-           // Find user by email
-           const user = await User.findOne({ email: credentials.email });
+           // Find user by email using repository
+           const user = await this._userRepository.findByEmail(credentials.email);
            if (!user) {
-               throw new Error('Invalid credentials');
+               throw new Error(messages.INVALID_CREDENTIALS);
            }
 
            // Check if user is blocked
            if (user.blocked) {
-               throw new Error('Your account has been blocked. Please contact support.');
+               throw new Error(messages.ACCOUNT_BLOCKED);
            }
 
            // Verify password
            const isPasswordValid = await user.comparePassword(credentials.password);
            if (!isPasswordValid) {
-               throw new Error('Invalid credentials');
+               throw new Error(messages.INVALID_CREDENTIALS);
            }
 
            // Generate JWT token
@@ -120,8 +123,7 @@ export class AuthService implements IAuthService{
            const refreshToken = user.generateRefreshToken();
 
            // Save refresh token to user
-           user.refreshToken = refreshToken;
-           await user.save();
+           await this._userRepository.updateById(user._id.toString(), { refreshToken });
 
            return {
                user: {
@@ -144,97 +146,80 @@ export class AuthService implements IAuthService{
    }
 
    async handleForgotPassword(email: string): Promise<void> {
-       const user = await User.findOne({ email });
-       if (!user) {
-           throw new Error('User not found');
-       }
-
-       const otp = generateOtp();
-       const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-       await this.otpRepository.saveOTP({
-           email,
-           otp,
-           expiresAt: otpExpiry
-       });
-
        try {
+           const user = await this._userRepository.findByEmail(email);
+           if (!user) {
+               throw new Error(messages.USER_NOT_FOUND);
+           }
+
+           const otp = generateOtp();
+           await this._otpRepository.saveOTP({
+               email,
+               otp,
+               expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+           });
+
            await sendMail({
                to: email,
-               subject: 'Reset Password OTP',
-               text: `Your OTP for password reset is: ${otp}. It will expire in 10 minutes.`
+               subject: messages.RESET_PASSWORD_SUBJECT,
+               text: `${messages.YOUR_OTP_FOR_PASSWORD_RESET}: ${otp}. ${messages.IT_WILL_EXPIRE_IN} 10 ${messages.MINUTES}.`
            });
        } catch (error: any) {
-           logger.error('Failed to send reset password OTP:', {
-               error: error.message,
-               email
-           });
+           logger.error('Forgot password error:', error);
            throw error;
        }
    }
 
-   async verifyForgotOtp(data: {email:string,otp:string}): Promise<boolean> {
-       console.log('Verifying forgot password OTP for email:', data.email)
-       console.log('Received forgot password OTP:', data.otp)
-
-       const otpRecord = await this.otpRepository.findOtpbyEmail(data.email)
-       console.log('Stored forgot password OTP:', otpRecord?.otp)
-
-       if(!otpRecord){
-           throw new Error("Couldn't find otp in email")
+   async verifyForgotOtp(data: { email: string; otp: string }): Promise<boolean> {
+       try {
+           const otpRecord = await this._otpRepository.findOtpbyEmail(data.email);
+           if (!otpRecord || otpRecord.otp !== data.otp) {
+               return false;
+           }
+           return true;
+       } catch (error) {
+           logger.error('Verify forgot OTP error:', error);
+           return false;
        }
-
-       if(otpRecord.otp!==data.otp){
-           throw new Error("otp doesn't match")
-       }
-
-       return true
    }
 
    async handleResetPassword(data: { email: string; newPassword: string; confirmPassword: string }): Promise<boolean> {
-       const user = await User.findOne({ email: data.email });
+       try {
+           if (data.newPassword !== data.confirmPassword) {
+               throw new Error(messages.PASSWORDS_DO_NOT_MATCH);
+           }
 
-       if(!user){
-           throw new Error("User not found")
+           const user = await this._userRepository.findByEmail(data.email);
+           if (!user) {
+               throw new Error(messages.USER_NOT_FOUND);
+           }
+
+           const hashedPassword = await hashPassword(data.newPassword);
+           await this._userRepository.updateById(user._id.toString(), { password: hashedPassword });
+
+           return true;
+       } catch (error: any) {
+           logger.error('Reset password error:', error);
+           throw error;
        }
-
-       if(data.newPassword!==data.confirmPassword){
-           throw new Error("Password didn't match")
-       }
-
-       const hashedPassword = await hashPassword(data.newPassword);
-       user.password = hashedPassword;
-       await user.save();
-
-       return true
    }
 
    async handleResendOtp(email: string): Promise<void> {
-       const user = await User.findOne({ email });
-       if (!user) {
-           throw new Error('User not found');
-       }
-
-       const otp = generateOtp();
-       const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-       await this.otpRepository.saveOTP({
-           email,
-           otp,
-           expiresAt: otpExpiry
-       });
-
        try {
+           const otp = generateOtp();
+           await this._otpRepository.saveOTP({
+               email,
+               otp,
+               expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+           });
+
            await sendMail({
                to: email,
-               subject: 'Resend OTP',
-               text: `Your new OTP is: ${otp}. It will expire in 10 minutes.`
+               subject: messages.RESEND_OTP_SUBJECT,
+               text: `${messages.YOUR_NEW_OTP}: ${otp}. ${messages.IT_WILL_EXPIRE_IN} 10 ${messages.MINUTES}.`
            });
        } catch (error: any) {
-           logger.error('Failed to resend OTP:', {
-               error: error.message,
-               email
-           });
+           logger.error('Resend OTP error:', error);
            throw error;
        }
    }
@@ -242,20 +227,17 @@ export class AuthService implements IAuthService{
    async refreshToken(token: string): Promise<{ accessToken: string }> {
        try {
            const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key') as { id: string };
-           const user = await User.findById(decoded.id);
-
+           const user = await this._userRepository.findById(decoded.id);
+           
            if (!user || user.refreshToken !== token) {
-               throw new Error('Invalid refresh token');
+               throw new Error(messages.INVALID_REFRESH_TOKEN);
            }
 
            const accessToken = user.generateAccessToken();
            return { accessToken };
        } catch (error: any) {
-           logger.error('Refresh token service error:', {
-               error: error.message,
-               stack: error.stack
-           });
-           throw new Error('Invalid refresh token');
+           logger.error('Refresh token error:', error);
+           throw new Error(messages.INVALID_REFRESH_TOKEN);
        }
    }
 }

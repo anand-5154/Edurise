@@ -8,6 +8,7 @@ import { AdminService } from "../services/implementation/admin.sevices";
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { UserRepository } from '../repository/implementations/user.repository';
 
 const router = express.Router();
 
@@ -15,13 +16,15 @@ const router = express.Router();
 const adminRepository = new AdminRepository();
 const instructorRepository = new InstructorAuth();
 const courseRepository = new CourseRepository();
+const userRepository = new UserRepository();
 
 // Initialize service
 const adminService = new AdminService(
   adminRepository,
   instructorRepository,
   courseRepository,
-  instructorRepository
+  instructorRepository,
+  userRepository
 );
 
 // Initialize controller
@@ -111,6 +114,12 @@ router.get(
   roleMiddleware(["admin"]),
   adminController.getAllCourses.bind(adminController)
 );
+router.get(
+  "/courses/:courseId",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  adminController.getCourseById.bind(adminController)
+);
 router.delete(
   "/courses/:courseId",
   authMiddleware,
@@ -175,6 +184,20 @@ router.put(
   authMiddleware,
   roleMiddleware(['admin']),
   adminController.changePassword.bind(adminController)
+);
+
+router.get(
+  "/reports/user-activity",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  adminController.getUserActivityReport.bind(adminController)
+);
+
+router.get(
+  "/reports/course-performance",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  adminController.getCoursePerformanceReport.bind(adminController)
 );
 
 export default router;

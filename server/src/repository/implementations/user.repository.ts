@@ -1,11 +1,134 @@
 import User from '../../models/implementations/userModel';
+import { BaseRepository } from './base.repository';
+import { IUser } from '../../models/interfaces/auth.interface';
+import { IUserRepository } from '../interfaces/user.interface';
+import Enrollment from '../../models/implementations/enrollmentModel';
 
-export class UserRepository {
-  async findById(id: string) {
-    return User.findById(id);
+export class UserRepository extends BaseRepository<IUser> implements IUserRepository {
+  constructor() {
+    super(User);
   }
 
-  async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
-    return User.findByIdAndUpdate(id, update, { new: true }).select('-password -__v');
+  async findByEmail(email: string): Promise<IUser | null> {
+    return this.model.findOne({ email });
+  }
+
+  async findUsersByRole(role: string): Promise<IUser[]> {
+    return this.model.find({ role }).select('-password');
+  }
+
+  async findBlockedUsers(): Promise<IUser[]> {
+    return this.model.find({ blocked: true }).select('-password');
+  }
+
+  async findActiveUsers(): Promise<IUser[]> {
+    return this.model.find({ blocked: false }).select('-password');
+  }
+
+  async updateUserStatus(id: string, blocked: boolean): Promise<IUser | null> {
+    return this.model.findByIdAndUpdate(id, { blocked }, { new: true }).select('-password');
+  }
+
+  async findUsersWithPagination(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    role?: string;
+  }): Promise<{
+    users: IUser[];
+    total: number;
+    totalPages: number;
+    currentPage: number;
+  }> {
+    const { page, limit, search, role } = params;
+    
+    // Build query
+    const query: any = { role: { $ne: 'admin' } };
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { username: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (role) {
+      query.role = role;
+    }
+    
+    // Get total count
+    const total = await this.model.countDocuments(query);
+    
+    // Get users with pagination
+    const users = await this.model.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+    
+    return {
+      users,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
+    };
+  }
+
+  async getUserActivityReport(): Promise<any[]> {
+    try {
+      console.log('Starting user activity aggregation...');
+      const result = await this.model.aggregate([
+        {
+          $lookup: {
+            from: 'enrollments',
+            localField: '_id',
+            foreignField: 'student',
+            as: 'enrollments',
+          },
+        },
+        {
+          $addFields: {
+            coursesEnrolled: { $size: '$enrollments' },
+            coursesCompleted: {
+              $size: {
+                $filter: {
+                  input: '$enrollments',
+                  as: 'enr',
+                  cond: { $eq: ['$$enr.status', 'completed'] },
+                },
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            email: 1,
+            lastLogin: "$updatedAt",
+            blocked: 1,
+            coursesEnrolled: 1,
+            coursesCompleted: 1,
+          },
+        },
+      ]);
+      console.log('User Activity Report Aggregation Result:', result);
+      return result;
+    } catch (err) {
+      console.error('Error in getUserActivityReport aggregation:', err);
+      throw err;
+    }
+  }
+
+  async getUserEnrollmentStats(userId: string): Promise<any> {
+    const enrollments = await Enrollment.find({ student: userId });
+    const completedEnrollments = enrollments.filter(e => e.status === 'completed');
+    
+    return {
+      totalEnrollments: enrollments.length,
+      completedEnrollments: completedEnrollments.length,
+      pendingEnrollments: enrollments.filter(e => e.status === 'pending').length,
+      totalSpent: completedEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0)
+    };
   }
 } 

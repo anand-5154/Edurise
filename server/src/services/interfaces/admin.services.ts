@@ -26,7 +26,7 @@ export interface IAdminService{
     getAllUsers(params: { page: number; limit: number; search: string; role: string }): Promise<{ users: IUser[]; total: number; totalPages: number; currentPage: number }>;
     blockUser(userId: string): Promise<void>;
     unblockUser(userId: string): Promise<void>;
-    getAllInstructors(): Promise<IInstructor[]>;
+    getAllInstructors(params: { page: number; limit: number; search: string }): Promise<{ instructors: IInstructor[]; total: number; totalPages: number; currentPage: number }>;
     verifyInstructor(instructorId: string): Promise<void>;
     rejectInstructor(instructorId: string): Promise<void>;
     getAllCourses(params: GetAllCoursesParams): Promise<GetAllCoursesResult>;
@@ -38,4 +38,12 @@ export interface IAdminService{
     deleteCategory(id: string): Promise<Category | null>;
     refreshToken(token: string): Promise<{ accessToken: string }>;
     getUserDetailsWithProgress(userId: string): Promise<any>;
+    getProfile(adminId: string): Promise<any>;
+    updateProfile(adminId: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }): Promise<any>;
+    changePassword(adminId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }>;
+    getCourseById(courseId: string): Promise<any>;
+    getUserActivityReport(): Promise<any>;
+    getCoursePerformanceReport(): Promise<any>;
+    blockInstructor(instructorId: string): Promise<void>;
+    unblockInstructor(instructorId: string): Promise<void>;
 }

@@ -10,8 +10,13 @@ import { DashboardStats } from '../../services/interfaces/admin.services';
 import Enrollment from '../../models/implementations/enrollmentModel';
 import jwt from 'jsonwebtoken';
 import LectureProgress from '../../models/implementations/lectureProgressModel';
+import { BaseRepository } from './base.repository';
 
-export class AdminRepository implements IAdminRepository {
+export class AdminRepository extends BaseRepository<IUser> implements IAdminRepository {
+  constructor() {
+    super(User);
+  }
+
   async findByEmail(email: string): Promise<IUser | null> {
     return await User.findOne({ email, role: 'admin' });
   }
@@ -105,28 +110,52 @@ export class AdminRepository implements IAdminRepository {
   }
 
   async getUserDetailsWithProgress(userId: string): Promise<any> {
+    try {
     const user = await User.findById(userId).select('-password -refreshToken -__v');
     if (!user) return null;
-    const enrollments = await Enrollment.find({ student: userId, status: 'completed' }).populate('course');
-    const progress = await LectureProgress.find({ student: userId });
+      let enrollments = [];
+      let progress = [];
+      try {
+        enrollments = await Enrollment.find({ student: userId, status: 'completed' }).populate('course');
+      } catch (enrErr) {
+        console.error('Error fetching enrollments:', enrErr);
+        // Return partial data if possible
+        return { user, courses: [], error: 'Failed to fetch enrollments' };
+      }
+      try {
+        progress = await LectureProgress.find({ student: userId });
+      } catch (progErr) {
+        console.error('Error fetching lecture progress:', progErr);
+        // Return partial data if possible
+        return { user, courses: [], error: 'Failed to fetch lecture progress' };
+      }
     // Map courseId to completed lecture indices
     const progressMap: Record<string, number[]> = {};
     progress.forEach(p => {
-      const cid = p.course.toString();
+        const cid = p.course?.toString?.() || String(p.course);
       if (!progressMap[cid]) progressMap[cid] = [];
       progressMap[cid].push(p.lectureIndex);
     });
     const courses = enrollments.map(enr => {
       const course = enr.course;
+        // Defensive: check course is an object and has _id/title
+        if (!course || typeof course !== 'object' || !('title' in course) || !('_id' in course)) {
+          return null;
+        }
       return {
         id: course._id,
-        title: course.title,
+          title: (course as any).title,
         lecturesCompleted: progressMap[course._id.toString()] || []
       };
-    });
+      }).filter(Boolean);
     return {
       user,
       courses
     };
+    } catch (err) {
+      console.error('getUserDetailsWithProgress error:', err);
+      // Return a user-friendly error object
+      return { error: 'Failed to fetch user details. Please contact support.' };
+    }
   }
 }

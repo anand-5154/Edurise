@@ -4,22 +4,22 @@ import { Request, Response } from "express";
 import { httpStatus } from "../../constants/statusCodes";
 import { GetAllCoursesParams } from "../../services/interfaces/user.services";
 import { AdminService } from '../../services/implementation/admin.sevices';
+import { messages } from '../../constants/messages';
 
 export class AdminController implements IAdminController {
-    constructor(private adminService: IAdminService) {}
+    constructor(private _adminService: IAdminService) {}
 
     async login(req: Request, res: Response): Promise<void> {
         const { email, password } = req.body;
-        
         try {
-            const result = await this.adminService.login(email, password);
+            const result = await this._adminService.login(email, password);
             if (!result) {
-                res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid credentials" });
+                res.status(httpStatus.UNAUTHORIZED).json({ message: messages.INVALID_CREDENTIALS });
                 return;
             }
             res.status(httpStatus.OK).json(result);
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Login failed" });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.INTERNAL_SERVER_ERROR });
         }
     }
 
@@ -29,34 +29,33 @@ export class AdminController implements IAdminController {
             const limit = parseInt(req.query.limit as string) || 10;
             const search = req.query.search as string || '';
             const role = req.query.role as string || '';
-
-            const result = await this.adminService.getAllUsers({ page, limit, search, role });
-            res.status(200).json(result);
+            const result = await this._adminService.getAllUsers({ page, limit, search, role });
+            res.status(httpStatus.OK).json(result);
         } catch (error) {
             console.error('Error in getAllUsers:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.INTERNAL_SERVER_ERROR });
         }
     }
 
     async getAllInstructors(req: Request, res: Response): Promise<void> {
         try {
             const { page = 1, limit = 10, search = '' } = req.query;
-            const instructors = await this.adminService.getAllInstructors({
+            const instructors = await this._adminService.getAllInstructors({
                 page: Number(page),
                 limit: Number(limit),
                 search: String(search)
             });
-            res.json(instructors);
+            res.status(httpStatus.OK).json(instructors);
         } catch (error: any) {
-            res.status(500).json({ message: 'Error fetching instructors', error: error.message });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_FETCH_INSTRUCTOR, error: error.message });
         }
     }
 
     async verifyInstructor(req: Request, res: Response): Promise<void> {
         const { instructorId } = req.params;
         try {
-            await this.adminService.verifyInstructor(instructorId);
-            res.status(httpStatus.OK).json({ message: "Instructor approved successfully" });
+            await this._adminService.verifyInstructor(instructorId);
+            res.status(httpStatus.OK).json({ message: messages.INSTRUCTOR_APPROVED });
         } catch (err: any) {
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
         }
@@ -65,8 +64,8 @@ export class AdminController implements IAdminController {
     async rejectInstructor(req: Request, res: Response): Promise<void> {
         const { instructorId } = req.params;
         try {
-            await this.adminService.rejectInstructor(instructorId);
-            res.status(httpStatus.OK).json({ message: "Instructor rejected successfully" });
+            await this._adminService.rejectInstructor(instructorId);
+            res.status(httpStatus.OK).json({ message: messages.INSTRUCTOR_REJECTED });
         } catch (err: any) {
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
         }
@@ -74,30 +73,30 @@ export class AdminController implements IAdminController {
 
     async getDashboardStats(req: Request, res: Response): Promise<void> {
         try {
-            const stats = await this.adminService.getDashboardStats();
+            const stats = await this._adminService.getDashboardStats();
             res.status(httpStatus.OK).json(stats);
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err);
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.INTERNAL_SERVER_ERROR });
         }
     }
 
     async blockUser(req: Request, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
-            await this.adminService.blockUser(userId);
-            res.status(httpStatus.OK).json({ message: "User blocked successfully" });
+            await this._adminService.blockUser(userId);
+            res.status(httpStatus.OK).json({ message: messages.USER_BLOCKED });
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Failed to block user" });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UPDATE_USER });
         }
     }
 
     async unblockUser(req: Request, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
-            await this.adminService.unblockUser(userId);
-            res.status(httpStatus.OK).json({ message: "User unblocked successfully" });
+            await this._adminService.unblockUser(userId);
+            res.status(httpStatus.OK).json({ message: messages.USER_UNBLOCKED });
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Failed to unblock user" });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UPDATE_USER });
         }
     }
 
@@ -115,19 +114,19 @@ export class AdminController implements IAdminController {
                 minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
                 maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined
             };
-            const courses = await this.adminService.getAllCourses(params);
+            const courses = await this._adminService.getAllCourses(params);
             res.status(httpStatus.OK).json(courses);
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err);
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.INTERNAL_SERVER_ERROR });
         }
     }
 
     async deleteCourse(req: Request, res: Response): Promise<void> {
         try {
-            await this.adminService.deleteCourse(req.params.courseId);
-            res.status(httpStatus.OK).json({ message: "Course deleted successfully" });
+            await this._adminService.deleteCourse(req.params.courseId);
+            res.status(httpStatus.OK).json({ message: messages.COURSE_DELETED });
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err);
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_DELETE });
         }
     }
 
@@ -135,30 +134,30 @@ export class AdminController implements IAdminController {
         try {
             const { courseId } = req.params;
             const { status } = req.body;
-            await this.adminService.updateCourseStatus(courseId, status);
-            res.status(httpStatus.OK).json({ message: "Course status updated successfully" });
+            await this._adminService.updateCourseStatus(courseId, status);
+            res.status(httpStatus.OK).json({ message: messages.COURSE_STATUS_UPDATED });
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err);
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UPDATE_COURSE });
         }
     }
 
     // Category Management
     async getCategories(req: Request, res: Response): Promise<void> {
         try {
-            const categories = await this.adminService.getCategories();
-            res.json(categories);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching categories', error: error.message });
+            const categories = await this._adminService.getCategories();
+            res.status(httpStatus.OK).json(categories);
+        } catch (error: any) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_FETCH_CATEGORIES, error: error.message });
         }
     }
 
     async createCategory(req: Request, res: Response): Promise<void> {
         try {
             const { name } = req.body;
-            const category = await this.adminService.createCategory(name);
-            res.status(201).json(category);
-        } catch (error) {
-            res.status(500).json({ message: 'Error creating category', error: error.message });
+            const category = await this._adminService.createCategory(name);
+            res.status(httpStatus.CREATED).json(category);
+        } catch (error: any) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_CREATE_CATEGORY, error: error.message });
         }
     }
 
@@ -166,26 +165,28 @@ export class AdminController implements IAdminController {
         try {
             const { id } = req.params;
             const { name } = req.body;
-            const category = await this.adminService.updateCategory(id, name);
+            const category = await this._adminService.updateCategory(id, name);
             if (!category) {
-                return res.status(404).json({ message: 'Category not found' });
+                res.status(httpStatus.NOT_FOUND).json({ message: messages.CATEGORY_NOT_FOUND });
+                return;
             }
-            res.json(category);
-        } catch (error) {
-            res.status(500).json({ message: 'Error updating category', error: error.message });
+            res.status(httpStatus.OK).json(category);
+        } catch (error: any) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UPDATE_CATEGORY, error: error.message });
         }
     }
 
     async deleteCategory(req: Request, res: Response): Promise<void> {
         try {
             const { id } = req.params;
-            const category = await this.adminService.deleteCategory(id);
+            const category = await this._adminService.deleteCategory(id);
             if (!category) {
-                return res.status(404).json({ message: 'Category not found' });
+                res.status(httpStatus.NOT_FOUND).json({ message: messages.CATEGORY_NOT_FOUND });
+                return;
             }
-            res.json({ message: 'Category deleted successfully' });
-        } catch (error) {
-            res.status(500).json({ message: 'Error deleting category', error: error.message });
+            res.status(httpStatus.OK).json({ message: messages.CATEGORY_DELETED });
+        } catch (error: any) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_DELETE_CATEGORY, error: error.message });
         }
     }
 
@@ -193,86 +194,83 @@ export class AdminController implements IAdminController {
     async blockInstructor(req: Request, res: Response): Promise<void> {
         try {
             const { id } = req.params;
-            const instructor = await this.adminService.blockInstructor(id);
-            res.json(instructor);
+            const instructor = await this._adminService.blockInstructor(id);
+            res.status(httpStatus.OK).json({ message: messages.INSTRUCTOR_BLOCKED, instructor });
         } catch (error: any) {
-            res.status(500).json({ message: 'Error blocking instructor', error: error.message });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_BLOCK_INSTRUCTOR, error: error.message });
         }
     }
 
     async unblockInstructor(req: Request, res: Response): Promise<void> {
         try {
             const { id } = req.params;
-            const instructor = await this.adminService.unblockInstructor(id);
-            res.json(instructor);
+            const instructor = await this._adminService.unblockInstructor(id);
+            res.status(httpStatus.OK).json({ message: messages.INSTRUCTOR_UNBLOCKED, instructor });
         } catch (error: any) {
-            res.status(500).json({ message: 'Error unblocking instructor', error: error.message });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UNBLOCK_INSTRUCTOR, error: error.message });
         }
     }
 
     async getProfile(req: Request, res: Response): Promise<void> {
         try {
-            // @ts-ignore
-            const adminPayload = req.user;
+            const adminPayload = req.user as { id: string };
             if (!adminPayload) {
-                res.status(httpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
+                res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
                 return;
             }
-            const admin = await this.adminService.getProfile(adminPayload.id);
+            const admin = await this._adminService.getProfile(adminPayload.id);
             if (!admin) {
-                res.status(httpStatus.NOT_FOUND).json({ message: 'Admin not found' });
+                res.status(httpStatus.NOT_FOUND).json({ message: messages.USER_NOT_FOUND });
                 return;
             }
             res.status(httpStatus.OK).json(admin);
         } catch (err) {
             console.error('getProfile error:', err);
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch profile', error: err instanceof Error ? err.message : err });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_FETCH_USER, error: err instanceof Error ? err.message : err });
         }
     }
 
     async updateProfile(req: Request, res: Response): Promise<void> {
         try {
-            // @ts-ignore
-            const adminPayload = req.user;
+            const adminPayload = req.user as { id: string };
             if (!adminPayload) {
-                res.status(httpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
+                res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
                 return;
             }
             const { name, username, phone, profilePicture } = req.body;
-            const updated = await this.adminService.updateProfile(adminPayload.id, { name, username, phone, profilePicture });
+            const updated = await this._adminService.updateProfile(adminPayload.id, { name, username, phone, profilePicture });
             if (!updated) {
-                res.status(httpStatus.NOT_FOUND).json({ message: 'Admin not found' });
+                res.status(httpStatus.NOT_FOUND).json({ message: messages.USER_NOT_FOUND });
                 return;
             }
             res.status(httpStatus.OK).json(updated);
         } catch (err) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to update profile' });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UPDATE_USER });
         }
     }
 
     async uploadProfilePicture(req: Request, res: Response): Promise<void> {
         try {
-            // @ts-ignore
-            const adminPayload = req.user;
+            const adminPayload = req.user as { id: string };
             if (!adminPayload) {
-                res.status(httpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
+                res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
                 return;
             }
-            // @ts-ignore
-            if (!req.file || !req.file.path) {
-                res.status(400).json({ message: 'No file uploaded' });
+            const file = (req as any).file;
+            if (!file || !file.path) {
+                res.status(httpStatus.BAD_REQUEST).json({ message: messages.NO_FILE_UPLOADED });
                 return;
             }
-            const updated = await this.adminService.updateProfile(adminPayload.id, { profilePicture: req.file.path });
+            const updated = await this._adminService.updateProfile(adminPayload.id, { profilePicture: file.path });
             if (!updated) {
-                res.status(httpStatus.NOT_FOUND).json({ message: 'Admin not found' });
+                res.status(httpStatus.NOT_FOUND).json({ message: messages.USER_NOT_FOUND });
                 return;
             }
             res.status(httpStatus.OK).json({ profilePicture: updated.profilePicture });
         } catch (err) {
             console.error('Upload profile picture error:', err);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ 
-                message: 'Failed to upload profile picture', 
+                message: messages.FAILED_TO_UPLOAD_PROFILE, 
                 error: err instanceof Error ? err.message : err 
             });
         }
@@ -280,26 +278,25 @@ export class AdminController implements IAdminController {
 
     async changePassword(req: Request, res: Response): Promise<void> {
         try {
-            // @ts-ignore
-            const adminPayload = req.user;
+            const adminPayload = req.user as { id: string };
             if (!adminPayload) {
-                res.status(httpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
+                res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
                 return;
             }
             const { currentPassword, newPassword } = req.body;
             if (!currentPassword || !newPassword) {
-                res.status(httpStatus.BAD_REQUEST).json({ message: 'All fields are required' });
+                res.status(httpStatus.BAD_REQUEST).json({ message: messages.ALL_FIELDS_REQUIRED });
                 return;
             }
-            const result = await this.adminService.changePassword(adminPayload.id, currentPassword, newPassword);
+            const result = await this._adminService.changePassword(adminPayload.id, currentPassword, newPassword);
             if (result.success) {
-                res.status(httpStatus.OK).json({ message: 'Password changed successfully' });
+                res.status(httpStatus.OK).json({ message: messages.PASSWORD_CHANGED });
             } else {
                 res.status(httpStatus.BAD_REQUEST).json({ message: result.message });
             }
         } catch (err) {
             console.error('Change password error:', err);
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to change password' });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_CHANGE_PASSWORD });
         }
     }
 
@@ -307,27 +304,60 @@ export class AdminController implements IAdminController {
         try {
             const { refreshToken } = req.body;
             if (!refreshToken) {
-                res.status(httpStatus.BAD_REQUEST).json({ message: 'Refresh token is required' });
+                res.status(httpStatus.BAD_REQUEST).json({ message: messages.TOKEN_REQUIRED });
                 return;
             }
-            const result = await this.adminService.refreshToken(refreshToken);
+            const result = await this._adminService.refreshToken(refreshToken);
             res.status(httpStatus.OK).json(result);
         } catch (err: any) {
-            res.status(httpStatus.UNAUTHORIZED).json({ message: err.message || 'Invalid refresh token' });
+            res.status(httpStatus.UNAUTHORIZED).json({ message: err.message || messages.INVALID_OR_EXPIRED_TOKEN });
         }
     }
 
     async getUserDetailsWithProgress(req: Request, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
-            const details = await this.adminService.getUserDetailsWithProgress(userId);
+            const details = await this._adminService.getUserDetailsWithProgress(userId);
             if (!details) {
-                res.status(404).json({ message: 'User not found' });
+                res.status(httpStatus.NOT_FOUND).json({ message: messages.USER_NOT_FOUND });
                 return;
             }
-            res.status(200).json(details);
+            res.status(httpStatus.OK).json(details);
         } catch (err: any) {
-            res.status(500).json({ message: err.message });
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
+        }
+    }
+
+    async getCourseById(req: Request, res: Response): Promise<void> {
+        try {
+            const { courseId } = req.params;
+            const course = await this._adminService.getCourseById(courseId);
+            if (!course) {
+                res.status(httpStatus.NOT_FOUND).json({ message: messages.COURSE_NOT_FOUND });
+                return;
+            }
+            res.status(httpStatus.OK).json(course);
+        } catch (err: any) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
+        }
+    }
+
+    async getUserActivityReport(req: Request, res: Response): Promise<void> {
+        try {
+            const report = await this._adminService.getUserActivityReport();
+            res.status(httpStatus.OK).json(report);
+        } catch (err: any) {
+            console.error('User Activity Report Error:', err); // Log full error with stack trace
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message, error: err });
+        }
+    }
+
+    async getCoursePerformanceReport(req: Request, res: Response): Promise<void> {
+        try {
+            const report = await this._adminService.getCoursePerformanceReport();
+            res.status(httpStatus.OK).json(report);
+        } catch (err: any) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
         }
     }
 }

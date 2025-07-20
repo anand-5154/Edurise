@@ -5,28 +5,29 @@ import { CourseRepository } from "../../repository/implementations/course.reposi
 import { IUser } from "../../models/interfaces/auth.interface";
 import { IInstructor } from "../../models/interfaces/instructorAuth.interface";
 import { GetAllCoursesParams, GetAllCoursesResult } from "../interfaces/user.services";
-import Instructor from "../../models/implementations/instructorModel";
-import User from "../../models/implementations/userModel";
-import { Category as CategoryModel } from '../../models/Category';
-import { ICategory } from "../../models/interfaces/category.interface";
+import { ICategoryRepository } from '../../repository/interfaces/category.repository';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { generateAccessToken } from '../../utils/generateToken';
+import { UserRepository } from "../../repository/implementations/user.repository";
+import { messages } from '../../constants/messages';
 
 export class AdminService implements IAdminService {
     constructor(
-        private adminRepository: AdminRepository,
-        private instructorRepository: InstructorAuth,
-        private courseRepository: CourseRepository,
-        private instructorAuthRepository: InstructorAuth
+        private _adminRepository: AdminRepository,
+        private _instructorRepository: InstructorAuth,
+        private _courseRepository: CourseRepository,
+        private _instructorAuthRepository: InstructorAuth,
+        private _userRepository: UserRepository,
+        private _categoryRepository: ICategoryRepository
     ) {}
 
     async login(email: string, password: string): Promise<LoginResponse | null> {
-        return this.adminRepository.login(email, password);
+        return this._adminRepository.login(email, password);
     }
 
     async getDashboardStats(): Promise<DashboardStats> {
-        return this.adminRepository.getDashboardStats();
+        return this._adminRepository.getDashboardStats();
     }
 
     async getAllUsers(params: { page: number; limit: number; search: string; role: string }): Promise<{ users: IUser[]; total: number; totalPages: number; currentPage: number }> {
@@ -65,23 +66,23 @@ export class AdminService implements IAdminService {
     }
 
     async blockUser(userId: string): Promise<void> {
-        await this.adminRepository.blockUser(userId);
+        await this._adminRepository.blockUser(userId);
     }
 
     async unblockUser(userId: string): Promise<void> {
-        await this.adminRepository.unblockUser(userId);
+        await this._adminRepository.unblockUser(userId);
     }
 
     async getAllInstructors(): Promise<IInstructor[]> {
-        return this.adminRepository.getAllInstructors();
+        return this._adminRepository.getAllInstructors();
     }
 
     async verifyInstructor(instructorId: string): Promise<void> {
-        await this.instructorRepository.verifyInstructor(instructorId);
+        await this._instructorRepository.verifyInstructor(instructorId);
     }
 
     async rejectInstructor(instructorId: string): Promise<void> {
-        await this.instructorRepository.rejectInstructor(instructorId);
+        await this._instructorRepository.rejectInstructor(instructorId);
     }
 
     async getAllCourses(params: GetAllCoursesParams): Promise<GetAllCoursesResult> {
@@ -106,10 +107,10 @@ export class AdminService implements IAdminService {
         }
         
         // Get total count
-        const total = await this.courseRepository.countCourses(query);
+        const total = await this._courseRepository.countCourses(query);
         
         // Get courses with pagination and sorting
-        const courses = await this.courseRepository.getCourses({
+        const courses = await this._courseRepository.getCourses({
             query,
             page,
             limit,
@@ -126,34 +127,33 @@ export class AdminService implements IAdminService {
     }
 
     async deleteCourse(courseId: string): Promise<void> {
-        await this.courseRepository.deleteCourse(courseId);
+        await this._courseRepository.deleteCourse(courseId);
     }
 
     async updateCourseStatus(courseId: string, status: string): Promise<void> {
         const isPublished = status === 'published';
-        await this.courseRepository.updateCourseStatus(courseId, isPublished);
+        await this._courseRepository.updateCourseStatus(courseId, isPublished);
+    }
+
+    async getCourseById(courseId: string) {
+        return this._courseRepository.getCourseById(courseId);
     }
 
     // Category Management
-    async getCategories(): Promise<ICategory[]> {
-        return await CategoryModel.find().sort({ createdAt: -1 });
+    async getCategories(): Promise<any[]> {
+        return await this._categoryRepository.findAll();
     }
 
-    async createCategory(name: string): Promise<ICategory> {
-        const category = new CategoryModel({ name });
-        return await category.save();
+    async createCategory(name: string): Promise<any> {
+        return await this._categoryRepository.create(name);
     }
 
-    async updateCategory(id: string, name: string): Promise<ICategory | null> {
-        return await CategoryModel.findByIdAndUpdate(
-            id,
-            { name },
-            { new: true }
-        );
+    async updateCategory(id: string, name: string): Promise<any | null> {
+        return await this._categoryRepository.update(id, name);
     }
 
-    async deleteCategory(id: string): Promise<ICategory | null> {
-        return await CategoryModel.findByIdAndDelete(id);
+    async deleteCategory(id: string): Promise<any | null> {
+        return await this._categoryRepository.delete(id);
     }
 
     // Instructor Management
@@ -195,7 +195,7 @@ export class AdminService implements IAdminService {
         ).select('-password');
 
         if (!instructor) {
-            throw new Error('Instructor not found');
+            throw new Error(messages.INSTRUCTOR_NOT_FOUND);
         }
 
         return instructor;
@@ -209,41 +209,54 @@ export class AdminService implements IAdminService {
         ).select('-password');
 
         if (!instructor) {
-            throw new Error('Instructor not found');
+            throw new Error(messages.INSTRUCTOR_NOT_FOUND);
         }
 
         return instructor;
     }
 
     async getProfile(adminId: string) {
-        return this.adminRepository.findById(adminId);
+        return this._adminRepository.findById(adminId);
     }
 
     async updateProfile(adminId: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
-        return this.adminRepository.updateById(adminId, update);
+        return this._adminRepository.updateById(adminId, update);
     }
 
     async changePassword(adminId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
-        const admin = await this.adminRepository.findById(adminId);
+        const admin = await this._adminRepository.findById(adminId);
         if (!admin) {
-            return { success: false, message: 'Admin not found' };
+            return { success: false, message: messages.USER_NOT_FOUND };
         }
         if (admin.password) {
             const isMatch = await bcrypt.compare(currentPassword, admin.password);
             if (!isMatch) {
-                return { success: false, message: 'Current password is incorrect' };
+                return { success: false, message: messages.PASSWORD_INCORRECT };
             }
         }
+        // Password strength validation
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return { success: false, message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.' };
+        }
         const hashed = await bcrypt.hash(newPassword, 10);
-        await this.adminRepository.updatePasswordById(adminId, hashed);
+        await this._adminRepository.updatePasswordById(adminId, hashed);
         return { success: true };
     }
 
     async refreshToken(token: string): Promise<{ accessToken: string }> {
-        return this.adminRepository.refreshToken(token);
+        return this._adminRepository.refreshToken(token);
     }
 
     async getUserDetailsWithProgress(userId: string): Promise<any> {
-        return this.adminRepository.getUserDetailsWithProgress(userId);
+        return this._adminRepository.getUserDetailsWithProgress(userId);
+    }
+
+    async getUserActivityReport() {
+        return this._userRepository.getUserActivityReport();
+    }
+
+    async getCoursePerformanceReport() {
+        return this._courseRepository.getCoursePerformanceReport();
     }
 }

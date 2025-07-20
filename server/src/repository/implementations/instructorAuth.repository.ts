@@ -79,7 +79,7 @@ export class InstructorAuth implements IInstructorAuthRepository, IInstructorAut
         return Instructor.findById(id).select('-password -__v');
     }
 
-    async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
+    async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string; education?: string }) {
         return Instructor.findByIdAndUpdate(id, update, { new: true }).select('-password -__v');
     }
 

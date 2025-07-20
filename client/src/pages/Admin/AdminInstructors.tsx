@@ -3,15 +3,21 @@ import axiosInstance from '../../services/apiService';
 import { errorToast, successToast } from '../../components/Toast';
 import BeatLoader from "react-spinners/BeatLoader";
 import { Search, Lock, LockOpen } from 'lucide-react';
+import { Dialog } from '@headlessui/react';
 
 interface Instructor {
   _id: string;
   name: string;
+  username?: string;
   email: string;
   phone: string;
+  title?: string;
+  yearsOfExperience?: number;
+  education?: string;
   isVerified: boolean;
   accountStatus: string;
   blocked: boolean;
+  profilePicture?: string;
   createdAt: string;
 }
 
@@ -23,6 +29,8 @@ const AdminInstructors = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchInstructors();
@@ -87,6 +95,11 @@ const AdminInstructors = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleViewDetails = (instructor: Instructor) => {
+    setSelectedInstructor(instructor);
+    setShowModal(true);
   };
 
   if (loading) {
@@ -181,6 +194,13 @@ const AdminInstructors = () => {
                       </>
                     )}
                     <button
+                      onClick={() => handleViewDetails(instructor)}
+                      className="text-blue-600 hover:text-blue-900"
+                      title="View Details"
+                    >
+                      View Details
+                    </button>
+                    <button
                       onClick={() => instructor.blocked ? handleUnblockInstructor(instructor._id) : handleBlockInstructor(instructor._id)}
                       className={`transition-colors ${
                         instructor.blocked 
@@ -223,6 +243,42 @@ const AdminInstructors = () => {
           </div>
         )}
       </div>
+
+      {/* Modal for instructor details */}
+      {showModal && selectedInstructor && (
+        <Dialog open={showModal} onClose={() => setShowModal(false)} className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="fixed inset-0 bg-black opacity-30" aria-hidden="true" />
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <Dialog.Panel className="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-auto p-6 z-20">
+              <Dialog.Title className="text-xl font-bold mb-4">Instructor Details</Dialog.Title>
+              <div className="space-y-2">
+                {selectedInstructor.profilePicture && (
+                  <img src={selectedInstructor.profilePicture} alt="Profile" className="w-24 h-24 rounded-full object-cover mx-auto mb-4" />
+                )}
+                <div><strong>Name:</strong> {selectedInstructor.name}</div>
+                {selectedInstructor.username && <div><strong>Username:</strong> {selectedInstructor.username}</div>}
+                <div><strong>Email:</strong> {selectedInstructor.email}</div>
+                <div><strong>Phone:</strong> {selectedInstructor.phone}</div>
+                {selectedInstructor.title && <div><strong>Title:</strong> {selectedInstructor.title}</div>}
+                {selectedInstructor.yearsOfExperience !== undefined && <div><strong>Years of Experience:</strong> {selectedInstructor.yearsOfExperience}</div>}
+                {selectedInstructor.education && <div><strong>Education:</strong> {selectedInstructor.education}</div>}
+                <div><strong>Status:</strong> {selectedInstructor.accountStatus}</div>
+                <div><strong>Verified:</strong> {selectedInstructor.isVerified ? 'Yes' : 'No'}</div>
+                <div><strong>Blocked:</strong> {selectedInstructor.blocked ? 'Yes' : 'No'}</div>
+                <div><strong>Joined:</strong> {new Date(selectedInstructor.createdAt).toLocaleDateString()}</div>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 };
