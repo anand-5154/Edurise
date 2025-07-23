@@ -11,6 +11,8 @@ import Courses from "../pages/User/Courses";
 import CourseDetails from "../pages/User/CourseDetails";
 import UserProfile from "../pages/User/UserProfile";
 import PaymentPage from '../pages/User/PaymentPage';
+import LearningArea from './LearningArea';
+import LearningPath from './LearningPath';
 
 const UserRoutes = () => {
   return (
@@ -27,6 +29,8 @@ const UserRoutes = () => {
       <Route path="/courses/:courseId" element={<CourseDetails/>}/>
       <Route path="/courses/:courseId/payment" element={<PaymentPage/>}/>
       <Route path="/profile" element={<UserProfile/>}/>
+      <Route path="/learning-area" element={<LearningArea />} />
+      <Route path="/learning-area/path" element={<LearningPath />} />
     </Routes>
   );
 };

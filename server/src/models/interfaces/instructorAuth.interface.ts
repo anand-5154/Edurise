@@ -7,9 +7,9 @@ export interface IInstructor extends Document {
     password: string;
     phone: string;
     title: string;
-    yearsOfExperience: number;
+    education: string[];
+    yearsOfExperience: string[];
     role: "user" | "admin" | "instructor";
-    education: string;
     accountStatus: "pending" | "approved" | "rejected";
     isVerified: boolean;
     blocked: boolean;

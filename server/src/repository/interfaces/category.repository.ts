@@ -1,4 +1,4 @@
-import { ICategory } from '../../models/interfaces/category.interface';
+import { ICategory } from '../../models/Category';
 
 export interface ICategoryRepository {
   findAll(): Promise<ICategory[]>;

@@ -1,5 +1,16 @@
 import { Document, Types } from 'mongoose';
 
+export interface ILecture {
+  title: string;
+  videoUrl: string;
+  description: string;
+}
+
+export interface IModule {
+  title: string;
+  lectures: ILecture[];
+}
+
 export interface ICourse extends Document {
   title: string;
   description: string;
@@ -12,4 +23,5 @@ export interface ICourse extends Document {
   isPublished: boolean;
   createdAt: Date;
   updatedAt: Date;
+  modules: IModule[];
 } 

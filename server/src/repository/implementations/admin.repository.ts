@@ -100,13 +100,22 @@ export class AdminRepository extends BaseRepository<IUser> implements IAdminRepo
   }
 
   async refreshToken(token: string): Promise<{ accessToken: string }> {
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key') as { id: string };
-    const admin = await User.findOne({ _id: decoded.id, role: 'admin' });
-    if (!admin || admin.refreshToken !== token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key') as { id: string };
+      const admin = await User.findOne({ _id: decoded.id, role: 'admin' });
+      // Debug logging
+      console.log('Decoded admin ID:', decoded.id);
+      console.log('Admin refreshToken in DB:', admin?.refreshToken);
+      console.log('Provided refreshToken:', token);
+      if (!admin || admin.refreshToken !== token) {
+        throw new Error('Invalid refresh token');
+      }
+      const accessToken = generateAccessToken(admin._id.toString(), 'admin');
+      return { accessToken };
+    } catch (error: any) {
+      console.error('Admin refreshToken error:', error);
       throw new Error('Invalid refresh token');
     }
-    const accessToken = generateAccessToken(admin._id.toString(), 'admin');
-    return { accessToken };
   }
 
   async getUserDetailsWithProgress(userId: string): Promise<any> {

@@ -9,4 +9,5 @@ export interface IAuthService{
     handleResetPassword(data:{email:string,newPassword:string,confirmPassword:string}):Promise<boolean>,
     handleResendOtp(email:string):Promise<void>
     refreshToken(token: string): Promise<{ accessToken: string }>;
+    handleGoogleAuth(user: any): Promise<{ accessToken: string; refreshToken: string; redirectUrl: string } | null>;
 }

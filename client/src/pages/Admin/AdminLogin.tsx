@@ -45,8 +45,8 @@ const AdminLogin = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.post('/admin/login', formData);
-      if (response.data.accessToken) {
-        localStorage.setItem('adminAccessToken', response.data.accessToken);
+      if (response.data.token) {
+        localStorage.setItem('adminAccessToken', response.data.token);
         localStorage.setItem('adminRefreshToken', response.data.refreshToken);
         successToast('Login successful');
         navigate('/admin/dashboard');

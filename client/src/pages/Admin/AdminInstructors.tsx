@@ -12,8 +12,8 @@ interface Instructor {
   email: string;
   phone: string;
   title?: string;
-  yearsOfExperience?: number;
-  education?: string;
+  yearsOfExperience?: string[];
+  education?: string[];
   isVerified: boolean;
   accountStatus: string;
   blocked: boolean;
@@ -260,8 +260,24 @@ const AdminInstructors = () => {
                 <div><strong>Email:</strong> {selectedInstructor.email}</div>
                 <div><strong>Phone:</strong> {selectedInstructor.phone}</div>
                 {selectedInstructor.title && <div><strong>Title:</strong> {selectedInstructor.title}</div>}
-                {selectedInstructor.yearsOfExperience !== undefined && <div><strong>Years of Experience:</strong> {selectedInstructor.yearsOfExperience}</div>}
-                {selectedInstructor.education && <div><strong>Education:</strong> {selectedInstructor.education}</div>}
+                {selectedInstructor.yearsOfExperience && selectedInstructor.yearsOfExperience.length > 0 && (
+                  <div><strong>Years of Experience:</strong>
+                    <ul className="list-disc ml-5">
+                      {selectedInstructor.yearsOfExperience.map((exp, idx) => (
+                        <li key={idx}>{exp}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selectedInstructor.education && selectedInstructor.education.length > 0 && (
+                  <div><strong>Education:</strong>
+                    <ul className="list-disc ml-5">
+                      {selectedInstructor.education.map((edu, idx) => (
+                        <li key={idx}>{edu}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <div><strong>Status:</strong> {selectedInstructor.accountStatus}</div>
                 <div><strong>Verified:</strong> {selectedInstructor.isVerified ? 'Yes' : 'No'}</div>
                 <div><strong>Blocked:</strong> {selectedInstructor.blocked ? 'Yes' : 'No'}</div>

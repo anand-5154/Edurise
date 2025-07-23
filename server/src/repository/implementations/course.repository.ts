@@ -170,4 +170,8 @@ export class CourseRepository extends BaseRepository<ICourse> implements ICourse
       .populate('instructor', 'name email')
       .select('+demoVideo');
   }
+
+  async findOne(filter: any): Promise<ICourse | null> {
+    return this.model.findOne(filter);
+  }
 } 

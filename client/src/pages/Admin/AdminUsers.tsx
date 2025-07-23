@@ -280,9 +280,36 @@ const AdminUsers = () => {
                     {userDetails.courses.map((course: any) => (
                       <li key={course.id} className="border rounded p-3">
                         <div className="font-medium">{course.title}</div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          Lectures completed: {course.lecturesCompleted.length}
-                        </div>
+                        {course.modules && course.modules.length > 0 ? (
+                          <ul className="mt-2 space-y-1">
+                            {course.modules.map((mod: any) => (
+                              <li key={mod._id}>
+                                <div className="flex items-center">
+                                  <span className="font-semibold">{mod.title}:</span>
+                                  {mod.lectures.every((lec: any) => course.lecturesCompleted.includes(lec._id)) ? (
+                                    <span className="ml-2 text-green-600">✔️ Completed</span>
+                                  ) : (
+                                    <span className="ml-2 text-gray-400">In Progress</span>
+                                  )}
+                                </div>
+                                <ul className="ml-4 mt-1">
+                                  {mod.lectures.map((lec: any) => (
+                                    <li key={lec._id} className="flex items-center text-sm">
+                                      <span>{lec.title}:</span>
+                                      {course.lecturesCompleted.includes(lec._id) ? (
+                                        <span className="ml-2 text-green-600">✔️</span>
+                                      ) : (
+                                        <span className="ml-2 text-gray-400">❌</span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="text-sm text-gray-500 mt-1">No modules found.</div>
+                        )}
                       </li>
                     ))}
                   </ul>

@@ -3,6 +3,8 @@ import { IInstructorService } from "../../services/interfaces/instructor.service
 import { Request, Response } from "express";
 import { httpStatus } from "../../constants/statusCodes";
 import { messages } from "../../constants/messages";
+import { IModule } from '../../models/implementations/moduleModel';
+import { ILecture } from '../../models/implementations/lectureModel';
 
 interface JwtPayload {
   id: string;
@@ -140,8 +142,8 @@ export class InstructorController implements IInstructorController {
         res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
         return;
       }
-      const { name, username, phone, profilePicture, education } = req.body;
-      const updated = await this._instructorService.updateProfile(instructorPayload.id, { name, username, phone, profilePicture, education });
+      const { name, username, phone, profilePicture, education, yearsOfExperience } = req.body;
+      const updated = await this._instructorService.updateProfile(instructorPayload.id, { name, username, phone, profilePicture, education, yearsOfExperience });
       if (!updated) {
         res.status(httpStatus.NOT_FOUND).json({ message: messages.INSTRUCTOR_NOT_FOUND });
         return;
@@ -212,6 +214,108 @@ export class InstructorController implements IInstructorController {
       res.status(httpStatus.OK).json(progress);
     } catch (err) {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success: false, error: err.message });
+    }
+  }
+
+  async createModule(req: Request, res: Response): Promise<void> {
+    try {
+      const { courseId } = req.params;
+      const module = await this._instructorService.createModule(courseId, req.body);
+      res.status(httpStatus.CREATED).json(module);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to create module' });
+    }
+  }
+
+  async updateModule(req: Request, res: Response): Promise<void> {
+    try {
+      const { moduleId } = req.params;
+      const module = await this._instructorService.updateModule(moduleId, req.body);
+      res.status(httpStatus.OK).json(module);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to update module' });
+    }
+  }
+
+  async deleteModule(req: Request, res: Response): Promise<void> {
+    try {
+      const { moduleId } = req.params;
+      await this._instructorService.deleteModule(moduleId);
+      res.status(httpStatus.OK).json({ message: 'Module deleted successfully' });
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to delete module' });
+    }
+  }
+
+  async getModules(req: Request, res: Response): Promise<void> {
+    try {
+      const { courseId } = req.params;
+      const modules = await this._instructorService.getModules(courseId);
+      res.status(httpStatus.OK).json(modules);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch modules' });
+    }
+  }
+
+  async reorderModules(req: Request, res: Response): Promise<void> {
+    try {
+      const { courseId } = req.params;
+      const { moduleOrder } = req.body;
+      await this._instructorService.reorderModules(courseId, moduleOrder);
+      res.status(httpStatus.OK).json({ message: 'Modules reordered successfully' });
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to reorder modules' });
+    }
+  }
+
+  async createLecture(req: Request, res: Response): Promise<void> {
+    try {
+      const { moduleId } = req.params;
+      const lecture = await this._instructorService.createLecture(moduleId, req.body);
+      res.status(httpStatus.CREATED).json(lecture);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to create lecture' });
+    }
+  }
+
+  async updateLecture(req: Request, res: Response): Promise<void> {
+    try {
+      const { lectureId } = req.params;
+      const lecture = await this._instructorService.updateLecture(lectureId, req.body);
+      res.status(httpStatus.OK).json(lecture);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to update lecture' });
+    }
+  }
+
+  async deleteLecture(req: Request, res: Response): Promise<void> {
+    try {
+      const { lectureId } = req.params;
+      await this._instructorService.deleteLecture(lectureId);
+      res.status(httpStatus.OK).json({ message: 'Lecture deleted successfully' });
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to delete lecture' });
+    }
+  }
+
+  async getLectures(req: Request, res: Response): Promise<void> {
+    try {
+      const { moduleId } = req.params;
+      const lectures = await this._instructorService.getLectures(moduleId);
+      res.status(httpStatus.OK).json(lectures);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch lectures' });
+    }
+  }
+
+  async reorderLectures(req: Request, res: Response): Promise<void> {
+    try {
+      const { moduleId } = req.params;
+      const { lectureOrder } = req.body;
+      await this._instructorService.reorderLectures(moduleId, lectureOrder);
+      res.status(httpStatus.OK).json({ message: 'Lectures reordered successfully' });
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to reorder lectures' });
     }
   }
 } 

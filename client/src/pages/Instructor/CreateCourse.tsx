@@ -9,6 +9,18 @@ interface Category {
   name: string;
 }
 
+interface LectureInput {
+  title: string;
+  videoUrl: string;
+  description: string;
+}
+
+interface ModuleInput {
+  title: string;
+  description: string;
+  lectures: LectureInput[];
+}
+
 const CreateCourse: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -25,8 +37,20 @@ const CreateCourse: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [lectures, setLectures] = useState([{ title: '', videoUrl: '', description: '' }]);
-  const [uploading, setUploading] = useState({ thumbnail: false, demoVideo: false, lectures: [] as boolean[] });
+  const [modules, setModules] = useState<ModuleInput[]>([
+    { title: '', description: '', lectures: [{ title: '', videoUrl: '', description: '' }] }
+  ]);
+  // Initialize uploading.modules to match modules/lectures structure
+  const initializeUploadingModules = (modules: ModuleInput[]) =>
+    modules.map(mod => mod.lectures.map(() => false));
+
+  const [uploading, setUploading] = useState({
+    thumbnail: false,
+    demoVideo: false,
+    modules: initializeUploadingModules([
+      { title: '', description: '', lectures: [{ title: '', videoUrl: '', description: '' }] }
+    ])
+  });
 
   useEffect(() => {
     // Fetch categories when component mounts
@@ -42,6 +66,14 @@ const CreateCourse: React.FC = () => {
     fetchCategories();
   }, []);
 
+  // When modules change (add/remove), sync uploading.modules
+  useEffect(() => {
+    setUploading(prev => ({
+      ...prev,
+      modules: initializeUploadingModules(modules)
+    }));
+  }, [modules.length]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -54,16 +86,60 @@ const CreateCourse: React.FC = () => {
     }
   };
 
-  const handleLectureChange = (index: number, field: string, value: string) => {
-    setLectures(prev => prev.map((lec, i) => i === index ? { ...lec, [field]: value } : lec));
+  // Module handlers
+  const handleModuleChange = (index: number, field: string, value: string) => {
+    setModules(prev => prev.map((mod, i) => i === index ? { ...mod, [field]: value } : mod));
+  };
+  // When adding/removing modules/lectures, ensure uploading.modules stays in sync
+  const addModule = () => {
+    setModules(prev => [...prev, { title: '', description: '', lectures: [{ title: '', videoUrl: '', description: '' }] }]);
+    setUploading(prev => ({
+      ...prev,
+      modules: [...prev.modules, [false]]
+    }));
+  };
+  const removeModule = (index: number) => {
+    setModules(prev => prev.filter((_, i) => i !== index));
+    setUploading(prev => ({
+      ...prev,
+      modules: prev.modules.filter((_, i) => i !== index)
+    }));
   };
 
-  const addLecture = () => setLectures(prev => [...prev, { title: '', videoUrl: '', description: '' }]);
-  const removeLecture = (index: number) => setLectures(prev => prev.filter((_, i) => i !== index));
+  // Lecture handlers for a module
+  const handleLectureChange = (moduleIdx: number, lectureIdx: number, field: string, value: string) => {
+    setModules(prev => prev.map((mod, i) =>
+      i === moduleIdx
+        ? { ...mod, lectures: mod.lectures.map((lec, j) => j === lectureIdx ? { ...lec, [field]: value } : lec) }
+        : mod
+    ));
+  };
+  // When adding/removing modules/lectures, ensure uploading.modules stays in sync
+  const addLecture = (moduleIdx: number) => {
+    setModules(prev => prev.map((mod, i) =>
+      i === moduleIdx ? { ...mod, lectures: [...mod.lectures, { title: '', videoUrl: '', description: '' }] } : mod
+    ));
+    setUploading(prev => {
+      const modulesArr = prev.modules.map((lecturesArr, mIdx) =>
+        mIdx === moduleIdx ? [...lecturesArr, false] : lecturesArr
+      );
+      return { ...prev, modules: modulesArr };
+    });
+  };
+  const removeLecture = (moduleIdx: number, lectureIdx: number) => {
+    setModules(prev => prev.map((mod, i) =>
+      i === moduleIdx ? { ...mod, lectures: mod.lectures.filter((_, j) => j !== lectureIdx) } : mod
+    ));
+    setUploading(prev => {
+      const modulesArr = prev.modules.map((lecturesArr, mIdx) =>
+        mIdx === moduleIdx ? lecturesArr.filter((_, lIdx) => lIdx !== lectureIdx) : lecturesArr
+      );
+      return { ...prev, modules: modulesArr };
+    });
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
     if (!formData.title.trim()) newErrors.title = "Title is required";
     if (!formData.description.trim()) newErrors.description = "Description is required";
     if (!formData.price.trim()) {
@@ -79,13 +155,15 @@ const CreateCourse: React.FC = () => {
     }
     if (!formData.thumbnail.trim()) newErrors.thumbnail = "Thumbnail URL is required";
     if (!formData.demoVideo.trim()) newErrors.demoVideo = "Demo video URL is required";
-    
-    lectures.forEach((lec, idx) => {
-      if (!lec.title.trim()) newErrors[`lectureTitle${idx}`] = 'Lecture title is required';
-      if (!lec.videoUrl.trim()) newErrors[`lectureUrl${idx}`] = 'Lecture video URL is required';
-      if (!lec.description.trim()) newErrors[`lectureDescription${idx}`] = 'Lecture description is required';
+    modules.forEach((mod, modIdx) => {
+      if (!mod.title.trim()) newErrors[`moduleTitle${modIdx}`] = 'Module title is required';
+      if (!mod.description.trim()) newErrors[`moduleDescription${modIdx}`] = 'Module description is required';
+      mod.lectures.forEach((lec, lecIdx) => {
+        if (!lec.title.trim()) newErrors[`lectureTitle${modIdx}_${lecIdx}`] = 'Lecture title is required';
+        if (!lec.videoUrl.trim()) newErrors[`lectureUrl${modIdx}_${lecIdx}`] = 'Lecture video URL is required';
+        if (!lec.description.trim()) newErrors[`lectureDescription${modIdx}_${lecIdx}`] = 'Lecture description is required';
+      });
     });
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,20 +171,17 @@ const CreateCourse: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
     try {
       if (!validateForm()) {
         setIsLoading(false);
         return;
       }
-      
       const response = await axiosInstance.post("/instructors/courses", {
         ...formData,
         price: Number(formData.price),
         duration: Number(formData.duration),
-        lectures
+        modules
       });
-      
       if (response && response.status === 201) {
         successToast("Course created successfully");
         navigate('/instructors/dashboard');
@@ -155,21 +230,42 @@ const CreateCourse: React.FC = () => {
   };
 
   // Lecture video upload handler
-  const handleLectureVideoChange = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLectureVideoChange = async (moduleIdx: number, lectureIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Set uploading true for this lecture
     setUploading(prev => {
-      const arr = [...prev.lectures];
-      arr[index] = true;
-      return { ...prev, lectures: arr };
+      const modulesArr = prev.modules.map((lecturesArr, mIdx) =>
+        mIdx === moduleIdx
+          ? lecturesArr.map((val, lIdx) => lIdx === lectureIdx ? true : val)
+          : lecturesArr
+      );
+      return { ...prev, modules: modulesArr };
     });
     const url = await uploadMediaToServer(file);
+    // Set uploading false for this lecture
     setUploading(prev => {
-      const arr = [...prev.lectures];
-      arr[index] = false;
-      return { ...prev, lectures: arr };
+      const modulesArr = prev.modules.map((lecturesArr, mIdx) =>
+        mIdx === moduleIdx
+          ? lecturesArr.map((val, lIdx) => lIdx === lectureIdx ? false : val)
+          : lecturesArr
+      );
+      return { ...prev, modules: modulesArr };
     });
-    if (url) setLectures(prev => prev.map((lec, i) => i === index ? { ...lec, videoUrl: url } : lec));
+    if (url) {
+      setModules(prev =>
+        prev.map((mod, mIdx) =>
+          mIdx === moduleIdx
+            ? {
+                ...mod,
+                lectures: mod.lectures.map((lec, lIdx) =>
+                  lIdx === lectureIdx ? { ...lec, videoUrl: url } : lec
+                ),
+              }
+            : mod
+        )
+      );
+    }
   };
 
   return (
@@ -325,46 +421,77 @@ const CreateCourse: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Lectures</label>
-            {lectures.map((lec, idx) => (
-              <div key={idx} className="mb-4 p-4 border rounded bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Modules</label>
+            {modules.map((mod, modIdx) => (
+              <div key={modIdx} className="mb-4 p-4 border rounded bg-gray-50">
                 <div className="mb-2">
                   <input
                     type="text"
-                    placeholder={`Lecture ${idx + 1} Title`}
-                    value={lec.title}
-                    onChange={e => handleLectureChange(idx, 'title', e.target.value)}
+                    placeholder={`Module ${modIdx + 1} Title`}
+                    value={mod.title}
+                    onChange={e => handleModuleChange(modIdx, 'title', e.target.value)}
                     className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
                   />
-                  {errors[`lectureTitle${idx}`] && <p className="text-sm text-red-600">{errors[`lectureTitle${idx}`]}</p>}
+                  {errors[`moduleTitle${modIdx}`] && <p className="text-sm text-red-600">{errors[`moduleTitle${modIdx}`]}</p>}
                 </div>
                 <div className="mb-2">
                   <textarea
-                    placeholder="Lecture Description"
-                    value={lec.description}
-                    onChange={e => handleLectureChange(idx, 'description', e.target.value)}
+                    placeholder="Module Description"
+                    value={mod.description}
+                    onChange={e => handleModuleChange(modIdx, 'description', e.target.value)}
                     className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
                     rows={2}
                   />
-                  {errors[`lectureDescription${idx}`] && <p className="text-sm text-red-600">{errors[`lectureDescription${idx}`]}</p>}
+                  {errors[`moduleDescription${modIdx}`] && <p className="text-sm text-red-600">{errors[`moduleDescription${modIdx}`]}</p>}
                 </div>
-                <div className="mb-2">
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={e => handleLectureVideoChange(idx, e)}
-                    className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
-                  />
-                  {uploading.lectures[idx] && <p className="text-sm text-gray-500">Uploading...</p>}
-                  {lec.videoUrl && <video src={lec.videoUrl} controls className="mt-2 h-20 rounded" />}
-                  {errors[`lectureUrl${idx}`] && <p className="text-sm text-red-600">{errors[`lectureUrl${idx}`]}</p>}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Lectures</label>
+                  {mod.lectures.map((lec, lecIdx) => (
+                    <div key={lecIdx} className="mb-4 p-4 border rounded bg-gray-100">
+                      <div className="mb-2">
+                        <input
+                          type="text"
+                          placeholder={`Lecture ${lecIdx + 1} Title`}
+                          value={lec.title}
+                          onChange={e => handleLectureChange(modIdx, lecIdx, 'title', e.target.value)}
+                          className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
+                        />
+                        {errors[`lectureTitle${modIdx}_${lecIdx}`] && <p className="text-sm text-red-600">{errors[`lectureTitle${modIdx}_${lecIdx}`]}</p>}
+                      </div>
+                      <div className="mb-2">
+                        <textarea
+                          placeholder="Lecture Description"
+                          value={lec.description}
+                          onChange={e => handleLectureChange(modIdx, lecIdx, 'description', e.target.value)}
+                          className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
+                          rows={2}
+                        />
+                        {errors[`lectureDescription${modIdx}_${lecIdx}`] && <p className="text-sm text-red-600">{errors[`lectureDescription${modIdx}_${lecIdx}`]}</p>}
+                      </div>
+                      <div className="mb-2">
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={e => handleLectureVideoChange(modIdx, lecIdx, e)}
+                          className="block w-full border border-gray-300 rounded-md py-2 px-3 mb-1"
+                        />
+                        {uploading.modules[modIdx]?.[lecIdx] && <p className="text-sm text-gray-500">Uploading...</p>}
+                        {lec.videoUrl && <video src={lec.videoUrl} controls className="mt-2 h-20 rounded" />}
+                        {errors[`lectureUrl${modIdx}_${lecIdx}`] && <p className="text-sm text-red-600">{errors[`lectureUrl${modIdx}_${lecIdx}`]}</p>}
+                      </div>
+                      {mod.lectures.length > 1 && (
+                        <button type="button" onClick={() => removeLecture(modIdx, lecIdx)} className="text-red-500 text-xs">Remove</button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addLecture(modIdx)} className="text-blue-600 text-sm font-medium">+ Add Lecture</button>
                 </div>
-                {lectures.length > 1 && (
-                  <button type="button" onClick={() => removeLecture(idx)} className="text-red-500 text-xs">Remove</button>
+                {modules.length > 1 && (
+                  <button type="button" onClick={() => removeModule(modIdx)} className="text-red-500 text-xs">Remove Module</button>
                 )}
               </div>
             ))}
-            <button type="button" onClick={addLecture} className="text-blue-600 text-sm font-medium">+ Add Lecture</button>
+            <button type="button" onClick={addModule} className="text-blue-600 text-sm font-medium">+ Add Module</button>
           </div>
 
           <div>

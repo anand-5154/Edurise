@@ -10,8 +10,8 @@ interface InstructorRequest {
   email: string;
   phone: string;
   title: string;
-  yearsOfExperience: number;
-  education: string;
+  yearsOfExperience: string[];
+  education: string[];
   createdAt: string;
 }
 
@@ -95,8 +95,12 @@ const AdminInstructorRequests = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.phone}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.title}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.yearsOfExperience} years</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.education}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.yearsOfExperience && request.yearsOfExperience.length > 0 ? request.yearsOfExperience.join(', ') : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {request.education && request.education.length > 0 ? request.education.join(', ') : 'N/A'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(request.createdAt).toLocaleDateString()}
                     </td>

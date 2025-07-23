@@ -1,19 +1,19 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ILectureProgress extends Document {
-  student: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
   course: mongoose.Types.ObjectId;
-  lectureIndex: number;
+  module: mongoose.Types.ObjectId;
+  lecture: mongoose.Types.ObjectId;
   completedAt: Date;
 }
 
 const lectureProgressSchema = new Schema<ILectureProgress>({
-  student: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   course: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
-  lectureIndex: { type: Number, required: true },
+  module: { type: Schema.Types.ObjectId, ref: 'Module', required: true },
+  lecture: { type: Schema.Types.ObjectId, ref: 'Lecture', required: true },
   completedAt: { type: Date, default: Date.now }
 });
-
-lectureProgressSchema.index({ student: 1, course: 1, lectureIndex: 1 }, { unique: true });
 
 export default mongoose.model<ILectureProgress>('LectureProgress', lectureProgressSchema); 

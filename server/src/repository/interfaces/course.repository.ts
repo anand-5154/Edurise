@@ -21,4 +21,5 @@ export interface ICourseRepository {
   updateCourseStatus(courseId: string, isPublished: boolean): Promise<ICourse | null>;
   getCoursesWithPagination(params: GetAllCoursesParams): Promise<GetAllCoursesResult>;
   findByIdIfPublished(courseId: string): Promise<ICourse | null>;
+  findOne(filter: any): Promise<ICourse | null>;
 } 

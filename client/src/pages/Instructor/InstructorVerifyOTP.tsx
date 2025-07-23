@@ -12,8 +12,9 @@ interface FormData {
   confirmPassword: string;
   phone: string;
   title: string;
-  yearsOfExperience: string;
-  education: string;
+  yearsOfExperience: string[];
+  education: string[];
+  documentUrl?: string;
 }
 
 export default function InstructorVerifyOTP() {
@@ -58,9 +59,8 @@ export default function InstructorVerifyOTP() {
     setIsLoading(true)
     try {
       const response = await axiosInstance.post("/instructors/verify-otp", {
-        email: registrationData.email,
-        otp,
-        ...registrationData
+        ...registrationData,
+        otp
       })
 
       if (response.status === 201) {

@@ -31,12 +31,12 @@ const lectureSchema = new Schema<ILecture>({
   title: { type: String, required: true },
   videoUrl: { type: String, required: true },
   description: { type: String, required: true }
-}, { _id: false });
+}, { _id: true }); // ensure _id is present
 
 const moduleSchema = new Schema<IModule>({
   title: { type: String, required: true },
   lectures: [lectureSchema]
-}, { _id: false });
+}, { _id: true }); // ensure _id is present
 
 const courseSchema = new Schema<ICourse>({
   title: {

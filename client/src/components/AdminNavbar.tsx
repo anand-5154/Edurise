@@ -112,6 +112,11 @@ const AdminNavbar = () => {
                 })}
               </div>
             </div>
+            <div className="mt-8">
+              <Link to="/admin/learning-paths" className="text-blue-600 font-semibold hover:underline">
+                Learning Paths
+              </Link>
+            </div>
           </nav>
 
           <div className="border-t border-blue-700/30 p-4">

@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { ICourseService } from '../../services/interfaces/course.interface';
+import { ICourseManagementService } from '../../services/interfaces/course-management.interface';
 import { httpStatus } from '../../constants/statusCodes';
 import { messages } from '../../constants/messages';
 
 export class CourseController {
-    constructor(private _courseService: ICourseService) {}
+    constructor(private _courseService: ICourseManagementService) {}
 
     async createCourse(req: Request, res: Response) {
         try {

@@ -14,7 +14,8 @@ interface InstructorData {
   createdAt: string;
   updatedAt: string;
   googleId?: string;
-  education?: string; // <-- Add this line
+  education?: string[];
+  yearsOfExperience?: string[];
 }
 
 const InstructorProfile: React.FC = () => {
@@ -109,7 +110,9 @@ const InstructorProfile: React.FC = () => {
       }
       const updateData = {
         ...editedData,
-        profilePicture: profilePictureUrl
+        profilePicture: profilePictureUrl,
+        education: editedData.education,
+        yearsOfExperience: editedData.yearsOfExperience,
       };
       console.log('Saving profile with data:', updateData);
       const response = await apiService.put('/instructors/profile', updateData);
@@ -160,6 +163,26 @@ const InstructorProfile: React.FC = () => {
     } finally {
       setIsChangingPassword(false);
     }
+  };
+
+  // Add helper functions for handling array fields
+  const handleArrayInputChange = (field: 'education' | 'yearsOfExperience', idx: number, value: string) => {
+    setEditedData(prev => ({
+      ...prev,
+      [field]: prev[field]?.map((item, i) => (i === idx ? value : item)) || [],
+    }));
+  };
+  const handleAddArrayField = (field: 'education' | 'yearsOfExperience') => {
+    setEditedData(prev => ({
+      ...prev,
+      [field]: [...(prev[field] || []), ''],
+    }));
+  };
+  const handleRemoveArrayField = (field: 'education' | 'yearsOfExperience', idx: number) => {
+    setEditedData(prev => ({
+      ...prev,
+      [field]: prev[field]?.filter((_, i) => i !== idx) || [],
+    }));
   };
 
   if (isLoading) {
@@ -310,16 +333,54 @@ const InstructorProfile: React.FC = () => {
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Education</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    name="education"
-                    value={editedData.education || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your education details"
-                  />
+                  <div>
+                    {(editedData.education || ['']).map((edu, idx) => (
+                      <div key={idx} className="flex items-center mb-2">
+                        <input
+                          type="text"
+                          value={edu}
+                          onChange={e => handleArrayInputChange('education', idx, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder={`Education #${idx + 1}`}
+                        />
+                        <button type="button" onClick={() => handleRemoveArrayField('education', idx)} className="ml-2 text-red-600">Remove</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => handleAddArrayField('education')} className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded">Add Education</button>
+                  </div>
                 ) : (
-                  <p className="text-gray-900">{instructorData.education || 'Not provided'}</p>
+                  <ul className="list-disc ml-5">
+                    {(instructorData.education || []).length > 0 ? instructorData.education.map((edu, idx) => (
+                      <li key={idx} className="text-gray-900">{edu}</li>
+                    )) : <li className="text-gray-500">Not provided</li>}
+                  </ul>
+                )}
+              </div>
+              {/* Years of Experience Field */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
+                {isEditing ? (
+                  <div>
+                    {(editedData.yearsOfExperience || ['']).map((exp, idx) => (
+                      <div key={idx} className="flex items-center mb-2">
+                        <input
+                          type="text"
+                          value={exp}
+                          onChange={e => handleArrayInputChange('yearsOfExperience', idx, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder={`Experience #${idx + 1}`}
+                        />
+                        <button type="button" onClick={() => handleRemoveArrayField('yearsOfExperience', idx)} className="ml-2 text-red-600">Remove</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => handleAddArrayField('yearsOfExperience')} className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded">Add Experience</button>
+                  </div>
+                ) : (
+                  <ul className="list-disc ml-5">
+                    {(instructorData.yearsOfExperience || []).length > 0 ? instructorData.yearsOfExperience.map((exp, idx) => (
+                      <li key={idx} className="text-gray-900">{exp}</li>
+                    )) : <li className="text-gray-500">Not provided</li>}
+                  </ul>
                 )}
               </div>
             </div>

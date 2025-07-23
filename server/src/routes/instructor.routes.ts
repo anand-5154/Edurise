@@ -10,14 +10,23 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { httpStatus } from "../constants/statusCodes";
+import { CourseRepository } from "../repository/implementations/course.repository";
+import { EnrollmentRepository } from "../repository/implementations/enrollment.repository";
 
 
 const instructorAuthRepository=new InstructorAuth()
 const otpRepository=new OtpRepository()
 const instructorAuthService=new InstructorAuthSerivce(instructorAuthRepository,otpRepository)
 const instructorAuthController=new InstructorAuthController(instructorAuthService)
-const instructorService = new InstructorService(instructorAuthRepository)
-const instructorController = new InstructorController(instructorService)
+const courseRepository = new CourseRepository();
+const enrollmentRepository = new EnrollmentRepository();
+const instructorService = new InstructorService(
+  instructorAuthRepository,
+  courseRepository,
+  enrollmentRepository
+  // Add other repositories as needed (messageRepository, moduleRepository, lectureRepository)
+);
+const instructorController = new InstructorController(instructorService);
 
 const router=Router()
 
@@ -97,6 +106,18 @@ router.post(
   '/upload-course-media',
   authMiddleware,
   roleMiddleware(['instructor']),
+  uploadCourseMedia.single('media'),
+  (req: any, res) => {
+    if (!req.file || !req.file.path) {
+      res.status(httpStatus.BAD_REQUEST).json({ message: 'No file uploaded' });
+      return;
+    }
+    res.status(httpStatus.OK).json({ url: req.file.path });
+  }
+);
+
+router.post(
+  '/upload-registration-document',
   uploadCourseMedia.single('media'),
   (req: any, res) => {
     if (!req.file || !req.file.path) {

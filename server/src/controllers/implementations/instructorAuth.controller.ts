@@ -10,11 +10,21 @@ export class InstructorAuthController implements IInstructorController{
 
     async signup(req: Request, res: Response): Promise<void> {
         try{
-            const {email}=req.body
+            const {email, ...rest}=req.body
+            if (!email) {
+                res.status(httpStatus.BAD_REQUEST).json({ message: 'Email is required' });
+                return;
+            }
+            if (Object.keys(rest).length > 0) {
+                res.status(httpStatus.BAD_REQUEST).json({ message: 'Only email is allowed in registration request' });
+                return;
+            }
             await this._instructorAuthService.registerInstructor(email)
             res.status(httpStatus.OK).json({message:"OTP sent Successfully"})
         }catch(err:any){
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json(err)
+            console.error('Registration error:', err);
+            const msg = err && err.message ? err.message : "Internal server error";
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: msg });
         }
     }
 
@@ -35,18 +45,21 @@ export class InstructorAuthController implements IInstructorController{
                 message: "Login successful"
             });
         } catch (err: any) {
-            // Handle specific error cases
-            if (err.message.includes("No account found")) {
-                res.status(httpStatus.NOT_FOUND).json({ message: err.message });
-            } else if (err.message.includes("Incorrect password")) {
-                res.status(httpStatus.UNAUTHORIZED).json({ message: err.message });
-            } else if (err.message.includes("blocked")) {
-                res.status(httpStatus.FORBIDDEN).json({ message: err.message });
-            } else if (err.message.includes("pending")) {
-                res.status(httpStatus.FORBIDDEN).json({ message: err.message });
+            console.error('Instructor login error:', err);
+            const msg = err && err.message ? err.message : "An unexpected error occurred. Please try again later.";
+            if (msg.includes("No account found")) {
+                res.status(httpStatus.NOT_FOUND).json({ message: msg });
+            } else if (msg.includes("Incorrect password") || msg.includes("INVALID_CREDENTIALS")) {
+                res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid email or password." });
+            } else if (msg.includes("blocked")) {
+                res.status(httpStatus.FORBIDDEN).json({ message: "Your account is blocked. Please contact support." });
+            } else if (msg.includes("pending")) {
+                res.status(httpStatus.FORBIDDEN).json({ message: "Your account is pending approval." });
+            } else if (msg.includes("ACCOUNT_SETUP_INCOMPLETE")) {
+                res.status(httpStatus.BAD_REQUEST).json({ message: "Account setup is incomplete. Please reset your password or contact support." });
             } else {
                 res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ 
-                    message: "An unexpected error occurred. Please try again later." 
+                    message: msg
                 });
             }
         }

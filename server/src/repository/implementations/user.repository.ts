@@ -76,48 +76,50 @@ export class UserRepository extends BaseRepository<IUser> implements IUserReposi
   }
 
   async getUserActivityReport(): Promise<any[]> {
-    try {
-      console.log('Starting user activity aggregation...');
-      const result = await this.model.aggregate([
-        {
-          $lookup: {
-            from: 'enrollments',
-            localField: '_id',
-            foreignField: 'student',
-            as: 'enrollments',
-          },
-        },
-        {
-          $addFields: {
-            coursesEnrolled: { $size: '$enrollments' },
-            coursesCompleted: {
-              $size: {
-                $filter: {
-                  input: '$enrollments',
-                  as: 'enr',
-                  cond: { $eq: ['$$enr.status', 'completed'] },
-                },
-              },
-            },
-          },
-        },
-        {
-          $project: {
-            name: 1,
-            email: 1,
-            lastLogin: "$updatedAt",
-            blocked: 1,
-            coursesEnrolled: 1,
-            coursesCompleted: 1,
-          },
-        },
-      ]);
-      console.log('User Activity Report Aggregation Result:', result);
-      return result;
-    } catch (err) {
-      console.error('Error in getUserActivityReport aggregation:', err);
-      throw err;
-    }
+    // Group by course, show users per course
+    return Enrollment.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'student',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      {
+        $lookup: {
+          from: 'courses',
+          localField: 'course',
+          foreignField: '_id',
+          as: 'course'
+        }
+      },
+      { $unwind: '$course' },
+      {
+        $group: {
+          _id: '$course._id',
+          courseTitle: { $first: '$course.title' },
+          users: {
+            $push: {
+              userId: '$user._id',
+              name: '$user.name',
+              email: '$user.email',
+              status: '$status',
+              enrolledAt: '$createdAt'
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          courseId: '$_id',
+          courseTitle: 1,
+          users: 1
+        }
+      }
+    ]);
   }
 
   async getUserEnrollmentStats(userId: string): Promise<any> {
@@ -130,5 +132,51 @@ export class UserRepository extends BaseRepository<IUser> implements IUserReposi
       pendingEnrollments: enrollments.filter(e => e.status === 'pending').length,
       totalSpent: completedEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0)
     };
+  }
+
+  async getUserActivityReportByCourse(): Promise<any[]> {
+    return Enrollment.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'student',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      {
+        $lookup: {
+          from: 'courses',
+          localField: 'course',
+          foreignField: '_id',
+          as: 'course'
+        }
+      },
+      { $unwind: '$course' },
+      {
+        $group: {
+          _id: '$course._id',
+          courseTitle: { $first: '$course.title' },
+          users: {
+            $push: {
+              userId: '$user._id',
+              name: '$user.name',
+              email: '$user.email',
+              status: '$status',
+              enrolledAt: '$createdAt'
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          courseId: '$_id',
+          courseTitle: 1,
+          users: 1
+        }
+      }
+    ]);
   }
 } 

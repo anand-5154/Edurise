@@ -8,4 +8,5 @@ export interface IInstructorAuthRepository {
     updatePassword(email: string, hashedPassword: string): Promise<IInstructor | null>
     verifyInstructor(instructorId: string): Promise<void>
     rejectInstructor(instructorId: string): Promise<void>
+    updateRefreshTokenById(id: string, refreshToken: string): Promise<void>;
 }

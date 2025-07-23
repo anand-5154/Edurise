@@ -18,7 +18,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
     async registerInstructor(email: string): Promise<void> {
         const existing=await this._instructorAuthRepository.findByEmail(email)
         if(existing){
-            throw new Error(messages.INSTRUCTOR_ALREADY_EXISTS)
+            throw new Error('Instructor already exists');
         }
 
         const otp=generateOtp()
@@ -29,7 +29,12 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
             expiresAt:otpExpiry
         })
 
-        await sendMail(email,otp)
+        try {
+            await sendMail(email,otp)
+        } catch (err) {
+            console.error('Failed to send registration OTP email:', err);
+            throw new Error('Failed to send OTP email. Please try again later.');
+        }
     }
 
     async verifyOtp(data: IInstructor & { otp: string; }): Promise<IInstructor> {
@@ -78,6 +83,10 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         if (!instructor.password) {
             throw new Error(messages.ACCOUNT_SETUP_INCOMPLETE);
         }
+        // Defensive: check password is a string and looks like a hash
+        if (typeof instructor.password !== 'string' || instructor.password.length < 10) {
+            throw new Error(messages.ACCOUNT_SETUP_INCOMPLETE);
+        }
         const isMatch = await bcrypt.compare(password, instructor.password);
         if (!isMatch) {
             throw new Error(messages.INVALID_CREDENTIALS);
@@ -91,6 +100,8 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         // Generate JWT token with role
         const accessToken = generateAccessToken(instructor._id.toString(), 'instructor');
         const refreshToken = generateRefreshToken(instructor._id.toString());
+        // Persist the refreshToken using the repository
+        await this._instructorAuthRepository.updateRefreshTokenById(instructor._id.toString(), refreshToken);
         instructor.refreshToken = refreshToken;
         return {
             instructor,
@@ -175,14 +186,20 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         try {
             const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key') as { id: string };
             const instructor = await Instructor.findById(decoded.id);
-    
+
+            // Debug logging
+            console.log('Decoded instructor ID:', decoded.id);
+            console.log('Instructor refreshToken in DB:', instructor?.refreshToken);
+            console.log('Provided refreshToken:', token);
+
             if (!instructor || instructor.refreshToken !== token) {
                 throw new Error(messages.INVALID_REFRESH_TOKEN);
             }
-    
+
             const accessToken = generateAccessToken(instructor._id.toString(), instructor.role);
             return { accessToken };
         } catch (error: any) {
+            console.error('Instructor refreshToken error:', error);
             throw new Error(messages.INVALID_REFRESH_TOKEN);
         }
     }

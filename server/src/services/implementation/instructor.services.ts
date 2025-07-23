@@ -11,6 +11,10 @@ import { ICourse } from "../../models/interfaces/course.interface";
 import { IEnrollment } from "../../models/interfaces/enrollment.interface";
 import { IMessage } from "../../models/implementations/messageModel";
 import { messages } from '../../constants/messages';
+import { IModuleRepository } from '../../repository/interfaces/module.repository';
+import { ILectureRepository } from '../../repository/interfaces/lecture.repository';
+import { IModule } from '../../models/implementations/moduleModel';
+import { ILecture } from '../../models/implementations/lectureModel';
 
 interface DashboardStats {
   totalStudents: number;
@@ -36,7 +40,9 @@ export class InstructorService implements IInstructorService {
     private instructorRepository: IInstructorAuthRepository,
     private courseRepository: ICourseRepository,
     private enrollmentRepository: IEnrollmentRepository,
-    private messageRepository: IMessageRepository
+    private messageRepository: IMessageRepository,
+    private moduleRepository: IModuleRepository,
+    private lectureRepository: ILectureRepository
   ) {}
 
   async createCourse(instructorId: string, courseData: Partial<ICourse>): Promise<ICourse> {
@@ -179,7 +185,7 @@ export class InstructorService implements IInstructorService {
     return this.instructorRepository.findById(instructorId);
   }
 
-  async updateProfile(instructorId: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string; education?: string }) {
+  async updateProfile(instructorId: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string; education?: string[]; yearsOfExperience?: string[] }) {
     return this.instructorRepository.updateById(instructorId, update);
   }
 
@@ -205,6 +211,93 @@ export class InstructorService implements IInstructorService {
   }
 
   async getCourseLectureProgress(courseId: string) {
-    // ... unchanged ...
+    try {
+      // 1. Get all enrollments for this course
+      const enrollments = await this.enrollmentRepository.findEnrollmentsByCourse(courseId);
+      const studentIds = enrollments.map((enr: any) =>
+        typeof enr.student === 'object' && enr.student._id ? enr.student._id.toString() : enr.student.toString()
+      );
+
+      // 2. Get user details for enrolled students
+      const User = require('../../models/implementations/userModel').default;
+      const users = await User.find({ _id: { $in: studentIds } }).select('_id name email');
+      const userMap: Record<string, { _id: string, name: string, email: string }> = {};
+      users.forEach((u: any) => { userMap[u._id.toString()] = { _id: u._id.toString(), name: u.name, email: u.email }; });
+
+      // 3. Get course structure
+      const course = await this.courseRepository.findById(courseId);
+      if (!course) throw new Error('Course not found');
+      const modules = course.modules || [];
+      console.log('[getCourseLectureProgress] modules length:', modules.length);
+      console.log('[getCourseLectureProgress] modules:', JSON.stringify(modules, null, 2));
+
+      // 4. Get all lecture progress for this course
+      const LectureProgress = require('../../models/implementations/lectureProgressModel').default;
+      const allProgress = await LectureProgress.find({ course: courseId, user: { $in: studentIds } });
+
+      // 5. Aggregate progress per student
+      const progressByUser: Record<string, { completedLectures: string[], completedModules: string[] }> = {};
+      for (const studentId of studentIds) {
+        const userProgress = allProgress.filter((p: any) => p.user.toString() === studentId);
+        const completedLectureIds = new Set(userProgress.map((p: any) => p.lecture.toString()));
+        const completedModules: string[] = modules
+          .filter((mod: any) => mod.lectures.length > 0 && mod.lectures.every((lec: any) => completedLectureIds.has(lec._id.toString())))
+          .map((mod: any) => mod._id.toString());
+        progressByUser[studentId] = {
+          completedLectures: Array.from(completedLectureIds),
+          completedModules
+        };
+      }
+
+      // 6. Return enrolled users (with details) and their progress
+      return {
+        enrolledUsers: users.map((u: any) => ({ _id: u._id.toString(), name: u.name, email: u.email })),
+        modules: modules.map((mod: any) => ({ _id: mod._id, title: mod.title, lectures: mod.lectures.map((lec: any) => ({ _id: lec._id, title: lec.title })) })),
+        progressByUser
+      };
+    } catch (err) {
+      console.error('[getCourseLectureProgress] error:', err);
+      throw err;
+    }
+  }
+
+  async createModule(courseId: string, moduleData: Partial<IModule>): Promise<IModule> {
+    return this.moduleRepository.createModule({ ...moduleData, course: courseId });
+  }
+
+  async updateModule(moduleId: string, update: Partial<IModule>): Promise<IModule | null> {
+    return this.moduleRepository.updateModule(moduleId, update);
+  }
+
+  async deleteModule(moduleId: string): Promise<void> {
+    await this.moduleRepository.deleteModule(moduleId);
+  }
+
+  async getModules(courseId: string): Promise<IModule[]> {
+    return this.moduleRepository.findByCourse(courseId);
+  }
+
+  async reorderModules(courseId: string, moduleOrder: string[]): Promise<void> {
+    await this.moduleRepository.reorderModules(courseId, moduleOrder);
+  }
+
+  async createLecture(moduleId: string, lectureData: Partial<ILecture>): Promise<ILecture> {
+    return this.lectureRepository.createLecture({ ...lectureData, module: moduleId });
+  }
+
+  async updateLecture(lectureId: string, update: Partial<ILecture>): Promise<ILecture | null> {
+    return this.lectureRepository.updateLecture(lectureId, update);
+  }
+
+  async deleteLecture(lectureId: string): Promise<void> {
+    await this.lectureRepository.deleteLecture(lectureId);
+  }
+
+  async getLectures(moduleId: string): Promise<ILecture[]> {
+    return this.lectureRepository.findByModule(moduleId);
+  }
+
+  async reorderLectures(moduleId: string, lectureOrder: string[]): Promise<void> {
+    await this.lectureRepository.reorderLectures(moduleId, lectureOrder);
   }
 } 

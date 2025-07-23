@@ -79,11 +79,15 @@ export class InstructorAuth implements IInstructorAuthRepository, IInstructorAut
         return Instructor.findById(id).select('-password -__v');
     }
 
-    async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string; education?: string }) {
+    async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string; education?: string[]; yearsOfExperience?: string[] }) {
         return Instructor.findByIdAndUpdate(id, update, { new: true }).select('-password -__v');
     }
 
     async updatePasswordById(id: string, hashedPassword: string) {
         return Instructor.findByIdAndUpdate(id, { password: hashedPassword }, { new: true });
+    }
+
+    async updateRefreshTokenById(id: string, refreshToken: string): Promise<void> {
+        await Instructor.findByIdAndUpdate(id, { refreshToken });
     }
 }

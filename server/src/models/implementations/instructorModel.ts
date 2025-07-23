@@ -33,19 +33,20 @@ const instructorSchema: Schema<IInstructor> = new Schema({
         required: true,
         trim: true
     },
-    yearsOfExperience: {
-        type: Number,
+    education: {
+        type: [String],
         required: true,
+        trim: true
+    },
+    yearsOfExperience: {
+        type: [String],
+        required: true,
+        trim: true
     },
     role: {
         type: String,
         enum: ["user", "instructor", "admin"],
         default: "instructor"
-    },
-    education: {
-        type: String,
-        required: true,
-        trim: true
     },
     accountStatus: {
         type: String,

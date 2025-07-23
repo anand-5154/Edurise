@@ -7,8 +7,8 @@ export class PaymentController {
   constructor(private _paymentService: IPaymentService) {}
 
   async createRazorpayOrder(req: Request, res: Response): Promise<void> {
-    try {
-      const { amount, courseId } = req.body;
+  try {
+    const { amount, courseId } = req.body;
       
       if (!amount || !courseId) {
         res.status(httpStatus.BAD_REQUEST).json({ 
@@ -19,18 +19,18 @@ export class PaymentController {
 
       const order = await this._paymentService.createOrder(amount, courseId);
       res.json(order);
-    } catch (err: any) {
-      console.error('Razorpay order error:', err);
+  } catch (err: any) {
+    console.error('Razorpay order error:', err);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ 
         error: 'Failed to create order', 
         details: err.message 
       });
-    }
+  }
   }
 
   async verifyRazorpayPayment(req: Request, res: Response): Promise<void> {
     try {
-      const { order_id, payment_id, signature, courseId } = req.body;
+  const { order_id, payment_id, signature, courseId } = req.body;
       const userId = (req.user as { id: string })?.id;
 
       // Validate required fields
@@ -90,7 +90,7 @@ export class PaymentController {
           error: 'Payment verification failed', 
           details: err.message 
         });
-      }
+    }
     }
   }
 
@@ -116,6 +116,6 @@ export class PaymentController {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ 
         error: 'Failed to get payment history' 
       });
-    }
+  }
   }
 }

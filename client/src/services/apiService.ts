@@ -13,6 +13,20 @@ axiosInstance.interceptors.request.use(
         const currentPath = window.location.pathname;
         let token = null;
 
+        // List of endpoints that should NOT have the Authorization header
+        const publicEndpoints = [
+            '/users/login',
+            '/users/register',
+            '/instructors/login',
+            '/instructors/register',
+            '/admin/login',
+            '/admin/register',
+        ];
+        // If the request URL ends with a public endpoint, skip adding the token
+        if (config.url && publicEndpoints.some(endpoint => config.url.endsWith(endpoint))) {
+            return config;
+        }
+
         if (currentPath.startsWith('/instructors')) {
             token = localStorage.getItem('instructorAccessToken');
         } else if (currentPath.startsWith('/admin')) {

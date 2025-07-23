@@ -35,9 +35,11 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
       role: string;
     };
 
+    console.log('[authMiddleware] decoded user:', decoded);
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('[authMiddleware] error:', error);
     return res.status(httpStatus.UNAUTHORIZED).json({ message: messages.INVALID_OR_EXPIRED_TOKEN });
   }
 };

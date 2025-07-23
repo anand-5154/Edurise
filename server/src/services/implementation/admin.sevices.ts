@@ -11,6 +11,9 @@ import jwt from 'jsonwebtoken';
 import { generateAccessToken } from '../../utils/generateToken';
 import { UserRepository } from "../../repository/implementations/user.repository";
 import { messages } from '../../constants/messages';
+import { IModuleRepository } from '../../repository/interfaces/module.repository';
+import User from '../../models/implementations/userModel';
+import Instructor from '../../models/implementations/instructorModel';
 
 export class AdminService implements IAdminService {
     constructor(
@@ -19,7 +22,8 @@ export class AdminService implements IAdminService {
         private _courseRepository: CourseRepository,
         private _instructorAuthRepository: InstructorAuth,
         private _userRepository: UserRepository,
-        private _categoryRepository: ICategoryRepository
+        private _categoryRepository: ICategoryRepository,
+        private _moduleRepository: IModuleRepository
     ) {}
 
     async login(email: string, password: string): Promise<LoginResponse | null> {
@@ -73,8 +77,34 @@ export class AdminService implements IAdminService {
         await this._adminRepository.unblockUser(userId);
     }
 
-    async getAllInstructors(): Promise<IInstructor[]> {
-        return this._adminRepository.getAllInstructors();
+    async getAllInstructors(params: { page: number; limit: number; search: string }): Promise<{ instructors: IInstructor[]; total: number; totalPages: number; currentPage: number }> {
+        const { page, limit, search } = params;
+        
+        // Build query
+        const query: any = {};
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+        
+        // Get total count
+        const total = await Instructor.countDocuments(query);
+        
+        // Get instructors with pagination
+        const instructors = await Instructor.find(query)
+            .select('-password')
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+        
+        return {
+            instructors,
+            total,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page
+        };
     }
 
     async verifyInstructor(instructorId: string): Promise<void> {
@@ -141,53 +171,47 @@ export class AdminService implements IAdminService {
 
     // Category Management
     async getCategories(): Promise<any[]> {
-        return await this._categoryRepository.findAll();
+        try {
+            console.log('AdminService: getCategories called');
+            return await this._categoryRepository.findAll();
+        } catch (error) {
+            console.error('AdminService getCategories error:', error);
+            throw error;
+        }
     }
 
     async createCategory(name: string): Promise<any> {
-        return await this._categoryRepository.create(name);
+        try {
+            console.log('AdminService: createCategory called with name:', name);
+            return await this._categoryRepository.create(name);
+        } catch (error) {
+            console.error('AdminService createCategory error:', error);
+            throw error;
+        }
     }
 
     async updateCategory(id: string, name: string): Promise<any | null> {
-        return await this._categoryRepository.update(id, name);
+        try {
+            console.log('AdminService: updateCategory called with id:', id, 'name:', name);
+            return await this._categoryRepository.update(id, name);
+        } catch (error) {
+            console.error('AdminService updateCategory error:', error);
+            throw error;
+        }
     }
 
     async deleteCategory(id: string): Promise<any | null> {
-        return await this._categoryRepository.delete(id);
+        try {
+            console.log('AdminService: deleteCategory called with id:', id);
+            return await this._categoryRepository.delete(id);
+        } catch (error) {
+            console.error('AdminService deleteCategory error:', error);
+            throw error;
+        }
     }
 
     // Instructor Management
-    async getAllInstructors(params: { page: number; limit: number; search: string }): Promise<{ instructors: IInstructor[]; total: number; totalPages: number; currentPage: number }> {
-        const { page, limit, search } = params;
-        
-        // Build query
-        const query: any = {};
-        if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
-            ];
-        }
-        
-        // Get total count
-        const total = await Instructor.countDocuments(query);
-        
-        // Get instructors with pagination
-        const instructors = await Instructor.find(query)
-            .select('-password')
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit);
-        
-        return {
-            instructors,
-            total,
-            totalPages: Math.ceil(total / limit),
-            currentPage: page
-        };
-    }
-
-    async blockInstructor(instructorId: string): Promise<IInstructor> {
+    async blockInstructor(instructorId: string): Promise<void> {
         const instructor = await Instructor.findByIdAndUpdate(
             instructorId,
             { blocked: true },
@@ -197,11 +221,10 @@ export class AdminService implements IAdminService {
         if (!instructor) {
             throw new Error(messages.INSTRUCTOR_NOT_FOUND);
         }
-
-        return instructor;
+        // No return value needed
     }
 
-    async unblockInstructor(instructorId: string): Promise<IInstructor> {
+    async unblockInstructor(instructorId: string): Promise<void> {
         const instructor = await Instructor.findByIdAndUpdate(
             instructorId,
             { blocked: false },
@@ -211,8 +234,7 @@ export class AdminService implements IAdminService {
         if (!instructor) {
             throw new Error(messages.INSTRUCTOR_NOT_FOUND);
         }
-
-        return instructor;
+        // No return value needed
     }
 
     async getProfile(adminId: string) {
@@ -245,18 +267,53 @@ export class AdminService implements IAdminService {
     }
 
     async refreshToken(token: string): Promise<{ accessToken: string }> {
-        return this._adminRepository.refreshToken(token);
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key') as { id: string };
+            const admin = await this._adminRepository.findById(decoded.id);
+
+            // Debug logging
+            console.log('Decoded admin ID:', decoded.id);
+            console.log('Admin refreshToken in DB:', admin?.refreshToken);
+            console.log('Provided refreshToken:', token);
+
+            if (!admin || admin.refreshToken !== token) {
+                throw new Error('Invalid refresh token');
+            }
+            const accessToken = generateAccessToken(admin._id.toString(), 'admin');
+            return { accessToken };
+        } catch (error: any) {
+            console.error('Admin refreshToken error:', error);
+            throw new Error('Invalid refresh token');
+        }
     }
 
     async getUserDetailsWithProgress(userId: string): Promise<any> {
         return this._adminRepository.getUserDetailsWithProgress(userId);
     }
 
-    async getUserActivityReport() {
+    async getUserActivityReport(): Promise<any> {
         return this._userRepository.getUserActivityReport();
+    }
+
+    async getUserActivityReportByCourse(): Promise<any[]> {
+        return this._userRepository.getUserActivityReportByCourse();
     }
 
     async getCoursePerformanceReport() {
         return this._courseRepository.getCoursePerformanceReport();
+    }
+
+    async getStudentModuleProgress(userId: string, courseId: string): Promise<{ completedModules: number; totalModules: number; }> {
+        const modules = await this._moduleRepository.findByCourse(courseId);
+        // TODO: Use ModuleProgress or LectureProgress to count completed modules
+        const completedModules = 0; // Placeholder
+        return { completedModules, totalModules: modules.length };
+    }
+
+    async getCoursePerformance(courseId: string): Promise<{ enrollments: number; }> {
+        // Assume EnrollmentRepository is available
+        // const enrollments = await this._enrollmentRepository.countEnrollments({ course: courseId });
+        const enrollments = 0; // Placeholder
+        return { enrollments };
     }
 }

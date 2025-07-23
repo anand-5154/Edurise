@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../services/apiService';
 
-interface UserActivity {
+interface UserInCourse {
+  userId: string;
   name: string;
   email: string;
-  lastLogin?: string;
-  blocked?: boolean;
-  coursesEnrolled: number;
-  coursesCompleted: number;
+  status: string;
+  enrolledAt: string;
+}
+
+interface CourseActivity {
+  courseId: string;
+  courseTitle: string;
+  users: UserInCourse[];
 }
 
 const AdminUserActivityReport: React.FC = () => {
-  const [data, setData] = useState<UserActivity[]>([]);
+  const [data, setData] = useState<CourseActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,35 +28,44 @@ const AdminUserActivityReport: React.FC = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">User Activity Report</h1>
+      <h1 className="text-2xl font-bold mb-6">User Activity Report (By Course)</h1>
       {loading ? (
         <div>Loading...</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border rounded shadow">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 border">Name</th>
-                <th className="px-4 py-2 border">Email</th>
-                <th className="px-4 py-2 border">Last Login</th>
-                <th className="px-4 py-2 border">Blocked</th>
-                <th className="px-4 py-2 border">Courses Enrolled</th>
-                <th className="px-4 py-2 border">Courses Completed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((user, idx) => (
-                <tr key={idx} className="text-center">
-                  <td className="px-4 py-2 border">{user.name}</td>
-                  <td className="px-4 py-2 border">{user.email}</td>
-                  <td className="px-4 py-2 border">{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : '-'}</td>
-                  <td className="px-4 py-2 border">{user.blocked ? 'Yes' : 'No'}</td>
-                  <td className="px-4 py-2 border">{user.coursesEnrolled}</td>
-                  <td className="px-4 py-2 border">{user.coursesCompleted}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {data.length === 0 ? (
+            <div className="text-gray-500">No user activity data found.</div>
+          ) : (
+            data.map((course) => (
+              <div key={course.courseId} className="mb-8">
+                <h2 className="text-xl font-semibold mb-2">{course.courseTitle}</h2>
+                <table className="min-w-full bg-white border rounded shadow mb-4">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2 border">Name</th>
+                      <th className="px-4 py-2 border">Email</th>
+                      <th className="px-4 py-2 border">Status</th>
+                      <th className="px-4 py-2 border">Enrolled At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {course.users.length === 0 ? (
+                      <tr><td colSpan={4} className="text-center text-gray-400 py-4">No users enrolled.</td></tr>
+                    ) : (
+                      course.users.map((user) => (
+                        <tr key={user.userId} className="text-center">
+                          <td className="px-4 py-2 border">{user.name}</td>
+                          <td className="px-4 py-2 border">{user.email}</td>
+                          <td className="px-4 py-2 border">{user.status}</td>
+                          <td className="px-4 py-2 border">{new Date(user.enrolledAt).toLocaleString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

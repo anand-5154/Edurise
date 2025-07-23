@@ -15,6 +15,7 @@ import AdminSettings from '../pages/Admin/AdminSettings';
 import AdminCoursePreview from '../pages/Admin/AdminCoursePreview';
 import AdminUserActivityReport from '../pages/Admin/AdminUserActivityReport';
 import AdminCoursePerformanceReport from '../pages/Admin/AdminCoursePerformanceReport';
+import AdminLearningPaths from '../pages/Admin/AdminLearningPaths';
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -47,6 +48,7 @@ const AdminRoutes = () => {
         <Route path="courses/:courseId/preview" element={<AdminCoursePreview />} />
         <Route path="reports/user-activity" element={<AdminUserActivityReport />} />
         <Route path="reports/course-performance" element={<AdminCoursePerformanceReport />} />
+        <Route path="/learning-paths" element={<AdminLearningPaths />} />
       </Route>
     </Routes>
   );

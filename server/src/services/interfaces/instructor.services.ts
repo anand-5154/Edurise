@@ -1,4 +1,7 @@
 import { ICourse } from '../../models/interfaces/course.interface';
+import { IInstructor } from '../../models/interfaces/instructorAuth.interface';
+import { IModule } from '../../models/implementations/moduleModel';
+import { ILecture } from '../../models/implementations/lectureModel';
 
 export interface DashboardStats {
   totalStudents: number;
@@ -25,4 +28,15 @@ export interface IInstructorService {
   getCourses(instructorId: string): Promise<ICourse[]>;
   getCourseById(instructorId: string, courseId: string): Promise<ICourse | null>;
   updateCourse(instructorId: string, courseId: string, courseData: Partial<ICourse>): Promise<ICourse | null>;
+  createModule(courseId: string, moduleData: Partial<IModule>): Promise<IModule>;
+  updateModule(moduleId: string, update: Partial<IModule>): Promise<IModule | null>;
+  deleteModule(moduleId: string): Promise<void>;
+  getModules(courseId: string): Promise<IModule[]>;
+  reorderModules(courseId: string, moduleOrder: string[]): Promise<void>;
+
+  createLecture(moduleId: string, lectureData: Partial<ILecture>): Promise<ILecture>;
+  updateLecture(lectureId: string, update: Partial<ILecture>): Promise<ILecture | null>;
+  deleteLecture(lectureId: string): Promise<void>;
+  getLectures(moduleId: string): Promise<ILecture[]>;
+  reorderLectures(moduleId: string, lectureOrder: string[]): Promise<void>;
 } 

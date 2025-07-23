@@ -9,6 +9,9 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { UserRepository } from '../repository/implementations/user.repository';
+import { CategoryRepository } from "../repository/implementations/category.repository";
+import { LearningPathRepository } from '../repository/implementations/learningPath.repository';
+import LearningPath from '../models/implementations/learningPathModel';
 
 const router = express.Router();
 
@@ -17,6 +20,8 @@ const adminRepository = new AdminRepository();
 const instructorRepository = new InstructorAuth();
 const courseRepository = new CourseRepository();
 const userRepository = new UserRepository();
+const categoryRepository = new CategoryRepository();
+const learningPathRepository = new LearningPathRepository();
 
 // Initialize service
 const adminService = new AdminService(
@@ -24,7 +29,9 @@ const adminService = new AdminService(
   instructorRepository,
   courseRepository,
   instructorRepository,
-  userRepository
+  userRepository,
+  categoryRepository,
+  learningPathRepository
 );
 
 // Initialize controller
@@ -198,6 +205,91 @@ router.get(
   authMiddleware,
   roleMiddleware(["admin"]),
   adminController.getCoursePerformanceReport.bind(adminController)
+);
+
+router.get(
+  "/reports/user-activity-by-course",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  adminController.getUserActivityReportByCourse.bind(adminController)
+);
+
+// Learning Path management
+router.get(
+  '/learning-paths',
+  authMiddleware,
+  roleMiddleware(['admin']),
+  async (req, res) => {
+    try {
+      const paths = await learningPathRepository.getAllLearningPaths();
+      res.json(paths);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+router.get(
+  '/learning-paths/:id',
+  authMiddleware,
+  roleMiddleware(['admin']),
+  async (req, res) => {
+    try {
+      const path = await learningPathRepository.getLearningPathById(req.params.id);
+      if (!path) {
+        return res.status(404).json({ message: 'Learning path not found' });
+      }
+      res.json(path);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// Create a learning path
+router.post(
+  '/learning-paths',
+  authMiddleware,
+  roleMiddleware(['admin']),
+  async (req, res) => {
+    try {
+      const { name, description, courses } = req.body;
+      const path = await learningPathRepository.createLearningPath({ name, description, courses });
+      res.status(201).json(path);
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  }
+);
+
+// Update a learning path
+router.put(
+  '/learning-paths/:id',
+  authMiddleware,
+  roleMiddleware(['admin']),
+  async (req, res) => {
+    try {
+      const path = await learningPathRepository.updateLearningPath(req.params.id, req.body);
+      res.json(path);
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  }
+);
+
+// Delete a learning path
+router.delete(
+  '/learning-paths/:id',
+  authMiddleware,
+  roleMiddleware(['admin']),
+  async (req, res) => {
+    try {
+      await learningPathRepository.deleteLearningPath(req.params.id);
+      res.status(204).end();
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  }
 );
 
 export default router;

@@ -5,6 +5,7 @@ import { httpStatus } from "../../constants/statusCodes";
 import { GetAllCoursesParams } from "../../services/interfaces/user.services";
 import { AdminService } from '../../services/implementation/admin.sevices';
 import { messages } from '../../constants/messages';
+import { IModule } from '../../models/implementations/moduleModel';
 
 export class AdminController implements IAdminController {
     constructor(private _adminService: IAdminService) {}
@@ -144,25 +145,30 @@ export class AdminController implements IAdminController {
     // Category Management
     async getCategories(req: Request, res: Response): Promise<void> {
         try {
+            console.log('AdminController: getCategories called');
             const categories = await this._adminService.getCategories();
             res.status(httpStatus.OK).json(categories);
         } catch (error: any) {
+            console.error('AdminController getCategories error:', error);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_FETCH_CATEGORIES, error: error.message });
         }
     }
 
     async createCategory(req: Request, res: Response): Promise<void> {
         try {
+            console.log('AdminController: createCategory called with body:', req.body);
             const { name } = req.body;
             const category = await this._adminService.createCategory(name);
             res.status(httpStatus.CREATED).json(category);
         } catch (error: any) {
+            console.error('AdminController createCategory error:', error);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_CREATE_CATEGORY, error: error.message });
         }
     }
 
     async updateCategory(req: Request, res: Response): Promise<void> {
         try {
+            console.log('AdminController: updateCategory called with params:', req.params, 'body:', req.body);
             const { id } = req.params;
             const { name } = req.body;
             const category = await this._adminService.updateCategory(id, name);
@@ -172,12 +178,14 @@ export class AdminController implements IAdminController {
             }
             res.status(httpStatus.OK).json(category);
         } catch (error: any) {
+            console.error('AdminController updateCategory error:', error);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UPDATE_CATEGORY, error: error.message });
         }
     }
 
     async deleteCategory(req: Request, res: Response): Promise<void> {
         try {
+            console.log('AdminController: deleteCategory called with params:', req.params);
             const { id } = req.params;
             const category = await this._adminService.deleteCategory(id);
             if (!category) {
@@ -186,6 +194,7 @@ export class AdminController implements IAdminController {
             }
             res.status(httpStatus.OK).json({ message: messages.CATEGORY_DELETED });
         } catch (error: any) {
+            console.error('AdminController deleteCategory error:', error);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_DELETE_CATEGORY, error: error.message });
         }
     }
@@ -352,12 +361,42 @@ export class AdminController implements IAdminController {
         }
     }
 
+    async getUserActivityReportByCourse(req: Request, res: Response): Promise<void> {
+        try {
+            const report = await this._adminService.getUserActivityReportByCourse();
+            res.status(httpStatus.OK).json(report);
+        } catch (err: any) {
+            console.error('User Activity Report By Course Error:', err);
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message, error: err });
+        }
+    }
+
     async getCoursePerformanceReport(req: Request, res: Response): Promise<void> {
         try {
             const report = await this._adminService.getCoursePerformanceReport();
             res.status(httpStatus.OK).json(report);
         } catch (err: any) {
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
+        }
+    }
+
+    async getStudentModuleProgress(req: Request, res: Response): Promise<void> {
+        try {
+            const { userId, courseId } = req.params;
+            const progress = await this._adminService.getStudentModuleProgress(userId, courseId);
+            res.status(httpStatus.OK).json(progress);
+        } catch (err) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch student module progress' });
+        }
+    }
+
+    async getCoursePerformance(req: Request, res: Response): Promise<void> {
+        try {
+            const { courseId } = req.params;
+            const performance = await this._adminService.getCoursePerformance(courseId);
+            res.status(httpStatus.OK).json(performance);
+        } catch (err) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch course performance' });
         }
     }
 }

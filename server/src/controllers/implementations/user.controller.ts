@@ -3,6 +3,8 @@ import { IUserController } from '../../controllers/interfaces/user.controller';
 import { IUserService } from '../../services/interfaces/user.services';
 import { httpStatus } from '../../constants/statusCodes';
 import { messages } from '../../constants/messages';
+import { IModule } from '../../models/implementations/moduleModel';
+import { ILecture } from '../../models/implementations/lectureModel';
 
 export class UserController implements IUserController {
   constructor(private _userService: IUserService) {}
@@ -171,17 +173,6 @@ export class UserController implements IUserController {
     }
   }
 
-  async completeLecture(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = req.user.id;
-      const { courseId, lectureIndex } = req.params;
-      await this._userService.completeLecture(userId, courseId, Number(lectureIndex));
-      res.status(httpStatus.OK).json({ success: true });
-    } catch (err) {
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success: false, error: err.message });
-    }
-  }
-
   async getLectureProgress(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user.id;
@@ -190,6 +181,46 @@ export class UserController implements IUserController {
       res.status(httpStatus.OK).json({ completedLectures });
     } catch (err) {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success: false, error: err.message });
+    }
+  }
+
+  async getModulesForCourse(req: Request, res: Response): Promise<void> {
+    try {
+      const { courseId } = req.params;
+      // @ts-ignore
+      const userId = req.user.id;
+      const result = await this._userService.getModulesForCourse(courseId, userId);
+      res.status(httpStatus.OK).json(result);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch modules' });
+    }
+  }
+
+  async getLecturesForModule(req: Request, res: Response): Promise<void> {
+    console.log('[UserController] getLecturesForModule called with moduleId:', req.params.moduleId);
+    try {
+      const { moduleId } = req.params;
+      // @ts-ignore
+      const userId = req.user.id;
+      const result = await this._userService.getLecturesForModule(moduleId, userId);
+      res.status(httpStatus.OK).json(result);
+    } catch (err) {
+      console.error('[UserController] getLecturesForModule error:', err);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch lectures', error: err instanceof Error ? err.message : err });
+    }
+  }
+
+  async completeLecture(req: Request, res: Response): Promise<void> {
+    try {
+      // @ts-ignore
+      const userId = req.user.id;
+      const { moduleId, lectureId } = req.params;
+      console.log('[UserController] completeLecture called with:', { userId, moduleId, lectureId });
+      await this._userService.completeLecture(userId, moduleId, lectureId);
+      res.status(httpStatus.OK).json({ message: 'Lecture marked as completed' });
+    } catch (err) {
+      console.error('[UserController] completeLecture error:', err);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to update progress', error: err instanceof Error ? err.message : err });
     }
   }
 } 

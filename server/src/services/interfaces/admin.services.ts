@@ -2,6 +2,7 @@ import { IUser } from "../../models/interfaces/auth.interface";
 import { IInstructor } from "../../models/interfaces/instructorAuth.interface";
 import { GetAllCoursesParams, GetAllCoursesResult } from "./user.services";
 import { Category } from '../../models/Category';
+import { IModule } from '../../models/implementations/moduleModel';
 
 export interface DashboardStats {
     totalUsers: number;
@@ -46,4 +47,6 @@ export interface IAdminService{
     getCoursePerformanceReport(): Promise<any>;
     blockInstructor(instructorId: string): Promise<void>;
     unblockInstructor(instructorId: string): Promise<void>;
+    getStudentModuleProgress(userId: string, courseId: string): Promise<{ completedModules: number; totalModules: number; }>;
+    getCoursePerformance(courseId: string): Promise<{ enrollments: number; }>;
 }

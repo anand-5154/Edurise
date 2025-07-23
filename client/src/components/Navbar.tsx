@@ -2,6 +2,7 @@ import { ShoppingCart, Heart, Bell, User, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { successToast } from "./Toast";
+import { Link } from 'react-router-dom';
 
 export default function Navbar() {
     const navigate = useNavigate();
@@ -38,6 +39,9 @@ export default function Navbar() {
                 <a href="/courses" className="hover:text-purple-600 transition-colors px-2 py-1 rounded-md hover:bg-purple-50">Courses</a>
                 <a href="#about" className="hover:text-purple-600 transition-colors px-2 py-1 rounded-md hover:bg-purple-50">About</a>
                 <a href="#contact" className="hover:text-purple-600 transition-colors px-2 py-1 rounded-md hover:bg-purple-50">Contact Us</a>
+                <Link to="/learning-area" className="text-blue-600 font-semibold hover:underline">
+                    Learning Area
+                </Link>
             </div>
 
             {/* Icons and Auth Buttons */}

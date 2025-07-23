@@ -240,4 +240,28 @@ export class AuthService implements IAuthService{
            throw new Error(messages.INVALID_REFRESH_TOKEN);
        }
    }
+
+    async handleGoogleAuth(user: any): Promise<{ accessToken: string; refreshToken: string; redirectUrl: string } | null> {
+        // user: Google profile object from passport
+        if (!user || !user.email) return null;
+        // Try to find user by email
+        let dbUser = await this._userRepository.findByEmail(user.email);
+        if (!dbUser) {
+            // Optionally, create a new user if not found
+            dbUser = await this._userRepository.createUser({
+                name: user.displayName || user.name || user.email,
+                email: user.email,
+                password: '', // No password for Google users
+                role: 'user',
+                blocked: false
+            });
+        }
+        // Generate tokens
+        const accessToken = dbUser.generateAccessToken();
+        const refreshToken = dbUser.generateRefreshToken();
+        await this._userRepository.updateById(dbUser._id.toString(), { refreshToken });
+        // Redirect URL (frontend)
+        const redirectUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        return { accessToken, refreshToken, redirectUrl };
+    }
 }

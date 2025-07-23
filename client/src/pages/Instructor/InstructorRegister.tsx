@@ -4,6 +4,7 @@ import axiosInstance from '../../services/apiService'
 import { errorToast, successToast } from '../../components/Toast'
 import BeatLoader from "react-spinners/BeatLoader"
 import { Eye, EyeOff } from 'lucide-react'
+import { useEffect } from 'react';
 
 interface FormData {
   name: string;
@@ -13,8 +14,9 @@ interface FormData {
   confirmPassword: string;
   phone: string;
   title: string;
-  yearsOfExperience: string;
-  education: string;
+  yearsOfExperience: string[];
+  education: string[];
+  documentUrl?: string;
 }
 
 interface FormErrors {
@@ -43,9 +45,35 @@ export default function InstructorRegister() {
     confirmPassword: '',
     phone: '',
     title: '',
-    yearsOfExperience: '',
-    education: ''
+    yearsOfExperience: [''],
+    education: [''],
+    documentUrl: ''
   })
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Helper functions for array fields
+  const handleArrayInputChange = (field: 'education' | 'yearsOfExperience', idx: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].map((item, i) => (i === idx ? value : item)),
+    }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+  const handleAddArrayField = (field: 'education' | 'yearsOfExperience') => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: [...prev[field], ''],
+    }));
+  };
+  const handleRemoveArrayField = (field: 'education' | 'yearsOfExperience', idx: number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== idx),
+    }));
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -112,18 +140,15 @@ export default function InstructorRegister() {
     }
 
     // Years of experience validation
-    if (!formData.yearsOfExperience) {
-      newErrors.yearsOfExperience = 'Years of experience is required'
-      isValid = false
-    } else if (isNaN(Number(formData.yearsOfExperience)) || Number(formData.yearsOfExperience) < 0) {
-      newErrors.yearsOfExperience = 'Please enter a valid number of years'
-      isValid = false
+    if (!formData.yearsOfExperience.length || formData.yearsOfExperience.some(exp => !exp.trim())) {
+      newErrors.yearsOfExperience = 'At least one experience entry is required';
+      isValid = false;
     }
 
     // Education validation
-    if (!formData.education.trim()) {
-      newErrors.education = 'Education details are required'
-      isValid = false
+    if (!formData.education.length || formData.education.some(edu => !edu.trim())) {
+      newErrors.education = 'At least one education entry is required';
+      isValid = false;
     }
 
     setErrors(newErrors)
@@ -145,6 +170,35 @@ export default function InstructorRegister() {
     }
   }
 
+  const handleDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Only PDF, DOC, DOCX, JPG, and PNG files are allowed');
+      setUploading(false);
+      return;
+    }
+    const formDataObj = new FormData();
+    formDataObj.append('media', file);
+    try {
+      const response = await axiosInstance.post('/instructors/upload-registration-document', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.url) {
+        setFormData(prev => ({ ...prev, documentUrl: response.data.url }));
+      } else {
+        setUploadError('Failed to upload document');
+      }
+    } catch (err) {
+      setUploadError('Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
@@ -156,7 +210,7 @@ export default function InstructorRegister() {
     try {
       const response = await axiosInstance.post("/instructors/register", { email: formData.email })
       if (response.status === 200) {
-        // Store the registration data in localStorage
+        // Store the registration data in localStorage (including arrays)
         localStorage.setItem('instructorSignUpData', JSON.stringify(formData))
         successToast("OTP sent successfully")
         navigate('/instructors/verify-otp')
@@ -168,7 +222,10 @@ export default function InstructorRegister() {
     }
   }
 
-  const isFormValid = Object.values(formData).every(value => value.trim() !== '') && !Object.keys(errors).length
+  const isFormValid = Object.values(formData).every(value => {
+    if (Array.isArray(value)) return value.every(v => v.trim() !== '');
+    return value && value.toString().trim() !== '';
+  }) && Object.values(errors).every(err => !err);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -320,36 +377,61 @@ export default function InstructorRegister() {
             </div>
 
             {/* Years of Experience */}
-            <div>
-              <label htmlFor="yearsOfExperience" className="block text-sm font-medium text-gray-700">Years of Experience</label>
-              <input
-                type="number"
-                name="yearsOfExperience"
-                id="yearsOfExperience"
-                min="0"
-                value={formData.yearsOfExperience}
-                onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm ${
-                  errors.yearsOfExperience ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-purple-500 focus:border-purple-500 sm:text-sm`}
-              />
-              {errors.yearsOfExperience && <p className="mt-1 text-sm text-red-600">{errors.yearsOfExperience}</p>}
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
+              <div>
+                {formData.yearsOfExperience.map((exp, idx) => (
+                  <div key={idx} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={exp}
+                      onChange={e => handleArrayInputChange('yearsOfExperience', idx, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder={`Experience #${idx + 1}`}
+                    />
+                    <button type="button" onClick={() => handleRemoveArrayField('yearsOfExperience', idx)} className="ml-2 text-red-600">Remove</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => handleAddArrayField('yearsOfExperience')} className="mt-2 px-3 py-1 bg-purple-100 text-purple-700 rounded">Add Experience</button>
+                {errors.yearsOfExperience && <p className="mt-1 text-sm text-red-600">{errors.yearsOfExperience}</p>}
+              </div>
             </div>
-
             {/* Education */}
             <div className="sm:col-span-2">
-              <label htmlFor="education" className="block text-sm font-medium text-gray-700">Education</label>
-              <textarea
-                name="education"
-                id="education"
-                rows={3}
-                value={formData.education}
-                onChange={handleChange}
-                className={`mt-1 block w-full rounded-md shadow-sm ${
-                  errors.education ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-purple-500 focus:border-purple-500 sm:text-sm`}
+              <label className="block text-sm font-medium text-gray-700">Education</label>
+              <div>
+                {formData.education.map((edu, idx) => (
+                  <div key={idx} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={edu}
+                      onChange={e => handleArrayInputChange('education', idx, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder={`Education #${idx + 1}`}
+                    />
+                    <button type="button" onClick={() => handleRemoveArrayField('education', idx)} className="ml-2 text-red-600">Remove</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => handleAddArrayField('education')} className="mt-2 px-3 py-1 bg-purple-100 text-purple-700 rounded">Add Education</button>
+                {errors.education && <p className="mt-1 text-sm text-red-600">{errors.education}</p>}
+              </div>
+            </div>
+
+            {/* Document Upload */}
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Upload Document (PDF, DOC, Image)</label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,image/*"
+                onChange={handleDocumentChange}
+                className="mt-1 block w-full text-sm text-gray-700"
+                disabled={uploading}
               />
-              {errors.education && <p className="mt-1 text-sm text-red-600">{errors.education}</p>}
+              {uploading && <p className="text-blue-600 text-sm mt-1">Uploading...</p>}
+              {uploadError && <p className="text-red-600 text-sm mt-1">{uploadError}</p>}
+              {formData.documentUrl && (
+                <a href={formData.documentUrl} target="_blank" rel="noopener noreferrer" className="text-green-700 text-sm mt-1 block">Document uploaded. View</a>
+              )}
             </div>
           </div>
 

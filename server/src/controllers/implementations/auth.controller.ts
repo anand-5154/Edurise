@@ -70,7 +70,7 @@ export class Authcontroller implements IAuthController{
               return;
           }
           const { accessToken, refreshToken, redirectUrl } = result;
-          res.redirect(`${redirectUrl}?accessToken=${accessToken}&refreshToken=${refreshToken}`);
+          res.redirect(`${redirectUrl}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
         } catch (error) {
           console.error('Google auth error:', error);
           const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
