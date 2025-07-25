@@ -1,8 +1,14 @@
 import { IModuleRepository } from '../interfaces/module.repository';
-import Module, { IModule } from '../../models/implementations/moduleModel';
+import { IModule } from '../../models/interfaces/IModule-interface';
+import Module from '../../models/implementations/moduleModel';
 import mongoose from 'mongoose';
+import { BaseRepository } from './base.repository';
 
-export class ModuleRepository implements IModuleRepository {
+export class ModuleRepository extends BaseRepository<IModule> implements IModuleRepository {
+  constructor() {
+    super(Module);
+  }
+
   async createModule(moduleData: Partial<IModule>): Promise<IModule> {
     return Module.create(moduleData);
   }
@@ -12,7 +18,7 @@ export class ModuleRepository implements IModuleRepository {
   }
 
   async findByCourse(courseId: string): Promise<IModule[]> {
-    return Module.find({ course: new mongoose.Types.ObjectId(courseId) }).sort({ order: 1 });
+    return this.model.find({ course: new mongoose.Types.ObjectId(courseId) }).sort({ order: 1 });
   }
 
   async updateModule(moduleId: string, update: Partial<IModule>): Promise<IModule | null> {
@@ -25,7 +31,7 @@ export class ModuleRepository implements IModuleRepository {
 
   async reorderModules(courseId: string, moduleOrder: string[]): Promise<void> {
     for (let i = 0; i < moduleOrder.length; i++) {
-      await Module.findByIdAndUpdate(moduleOrder[i], { order: i + 1 });
+      await this.model.findByIdAndUpdate(moduleOrder[i], { order: i + 1 });
     }
   }
 } 

@@ -21,12 +21,13 @@ declare global {
   }
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-      return res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
+      res.status(httpStatus.UNAUTHORIZED).json({ message: messages.UNAUTHORIZED });
+      return;
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
@@ -40,7 +41,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     next();
   } catch (error) {
     console.error('[authMiddleware] error:', error);
-    return res.status(httpStatus.UNAUTHORIZED).json({ message: messages.INVALID_OR_EXPIRED_TOKEN });
+    res.status(httpStatus.UNAUTHORIZED).json({ message: messages.INVALID_OR_EXPIRED_TOKEN });
+    return;
   }
 };
 

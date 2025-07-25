@@ -1,4 +1,4 @@
-import { IModule } from '../../models/implementations/moduleModel';
+import { IModule } from '../../models/interfaces/IModule-interface';
 
 export interface IModuleRepository {
   createModule(moduleData: Partial<IModule>): Promise<IModule>;

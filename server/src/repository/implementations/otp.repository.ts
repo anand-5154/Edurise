@@ -1,5 +1,5 @@
-import { IOtpRepository } from "../interfaces/otp.interface";
-import { IOtp } from "../../models/interfaces/otp.interface";
+import { IOtpRepository } from "../interfaces/IOtpRepository-interface";
+import { IOtp } from "../../models/interfaces/IOtp-interface";
 import Otp from "../../models/implementations/otpModel";
 import { BaseRepository } from "./base.repository";
 

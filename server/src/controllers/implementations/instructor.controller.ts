@@ -5,6 +5,7 @@ import { httpStatus } from "../../constants/statusCodes";
 import { messages } from "../../constants/messages";
 import { IModule } from '../../models/implementations/moduleModel';
 import { ILecture } from '../../models/implementations/lectureModel';
+import { IInstructorBankInfo } from '../../models/interfaces/instructorBankInfo.interface';
 
 interface JwtPayload {
   id: string;
@@ -316,6 +317,39 @@ export class InstructorController implements IInstructorController {
       res.status(httpStatus.OK).json({ message: 'Lectures reordered successfully' });
     } catch (err) {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to reorder lectures' });
+    }
+  }
+
+  async getBankInfo(req: Request, res: Response): Promise<void> {
+    try {
+      // @ts-ignore
+      const instructorId = req.user.id;
+      const bankInfo = await this._instructorService.getBankInfo(instructorId);
+      res.status(200).json(bankInfo);
+    } catch (err: any) {
+      res.status(500).json({ message: 'Failed to fetch bank info', error: err.message });
+    }
+  }
+
+  async upsertBankInfo(req: Request, res: Response): Promise<void> {
+    try {
+      // @ts-ignore
+      const instructorId = req.user.id;
+      const bankInfo = await this._instructorService.upsertBankInfo(instructorId, req.body);
+      res.status(200).json(bankInfo);
+    } catch (err: any) {
+      res.status(500).json({ message: 'Failed to update bank info', error: err.message });
+    }
+  }
+
+  async deleteBankInfo(req: Request, res: Response): Promise<void> {
+    try {
+      // @ts-ignore
+      const instructorId = req.user.id;
+      await this._instructorService.deleteBankInfo(instructorId);
+      res.status(200).json({ message: 'Bank info deleted' });
+    } catch (err: any) {
+      res.status(500).json({ message: 'Failed to delete bank info', error: err.message });
     }
   }
 } 

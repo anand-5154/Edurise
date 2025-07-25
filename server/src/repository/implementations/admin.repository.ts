@@ -11,32 +11,38 @@ import Enrollment from '../../models/implementations/enrollmentModel';
 import jwt from 'jsonwebtoken';
 import LectureProgress from '../../models/implementations/lectureProgressModel';
 import { BaseRepository } from './base.repository';
+import { UserRepository } from './user.repository';
+import { EnrollmentRepository } from './enrollment.repository';
+import { LectureProgressRepository } from './lectureProgress.repository';
 
 export class AdminRepository extends BaseRepository<IUser> implements IAdminRepository {
-  constructor() {
+  constructor(
+    private userRepository: UserRepository,
+    private enrollmentRepository: EnrollmentRepository,
+    private lectureProgressRepository: LectureProgressRepository
+  ) {
     super(User);
   }
 
   async findByEmail(email: string): Promise<IUser | null> {
-    return await User.findOne({ email, role: 'admin' });
+    return await this.userRepository.findByEmail(email);
   }
 
   async getAllUsers(): Promise<IUser[]> {
-    const users = await User.find({ role: 'user' }).lean();
-    return users;
+    return await this.userRepository.findUsersByRole('user');
   }
 
   async getAllInstructors(): Promise<IInstructor[]> {
-    const instructors = await Instructor.find({}).lean();
-    return instructors;
+    // Assuming you have an InstructorRepository, otherwise keep as is
+    return await Instructor.find({}).lean();
   }
 
   async blockUser(userId: string): Promise<void> {
-    await User.findByIdAndUpdate(userId, { blocked: true });
+    await this.userRepository.updateUserStatus(userId, true);
   }
 
   async unblockUser(userId: string): Promise<void> {
-    await User.findByIdAndUpdate(userId, { blocked: false });
+    await this.userRepository.updateUserStatus(userId, false);
   }
 
   async getDashboardStats(): Promise<DashboardStats> {
@@ -61,7 +67,9 @@ export class AdminRepository extends BaseRepository<IUser> implements IAdminRepo
     };
   }
 
-  async login(email: string, password: string): Promise<{ accessToken: string; refreshToken: string; admin: { id: string; email: string; name: string; }; } | null> {
+  async login(email: string, password: string): Promise<{
+      _id: any; accessToken: string; refreshToken: string; admin: { id: string; email: string; name: string; }; 
+} | null> {
     const admin = await User.findOne({ email, role: 'admin' });
     if (!admin) {
       return null;
@@ -77,6 +85,7 @@ export class AdminRepository extends BaseRepository<IUser> implements IAdminRepo
     await admin.save();
     
     return {
+      _id: admin._id,
       accessToken,
       refreshToken,
       admin: {
@@ -93,6 +102,10 @@ export class AdminRepository extends BaseRepository<IUser> implements IAdminRepo
 
   async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string }) {
     return User.findOneAndUpdate({ _id: id, role: 'admin' }, update, { new: true }).select('-password -__v');
+  }
+
+  async updateRefreshTokenById(id: string, refreshToken: string) {
+    return User.findOneAndUpdate({ _id: id, role: 'admin' }, { refreshToken }, { new: true }).select('-password -__v');
   }
 
   async updatePasswordById(id: string, hashedPassword: string) {
@@ -120,22 +133,20 @@ export class AdminRepository extends BaseRepository<IUser> implements IAdminRepo
 
   async getUserDetailsWithProgress(userId: string): Promise<any> {
     try {
-    const user = await User.findById(userId).select('-password -refreshToken -__v');
+      const user = await this.userRepository.findById(userId);
     if (!user) return null;
       let enrollments = [];
       let progress = [];
       try {
-        enrollments = await Enrollment.find({ student: userId, status: 'completed' }).populate('course');
+        enrollments = await this.enrollmentRepository.findEnrollmentsByStudent(userId);
       } catch (enrErr) {
         console.error('Error fetching enrollments:', enrErr);
-        // Return partial data if possible
         return { user, courses: [], error: 'Failed to fetch enrollments' };
       }
       try {
-        progress = await LectureProgress.find({ student: userId });
+        progress = await this.lectureProgressRepository.findByUserAndCourse(userId, null);
       } catch (progErr) {
         console.error('Error fetching lecture progress:', progErr);
-        // Return partial data if possible
         return { user, courses: [], error: 'Failed to fetch lecture progress' };
       }
     // Map courseId to completed lecture indices

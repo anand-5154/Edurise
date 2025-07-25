@@ -1,4 +1,4 @@
-import { ILecture } from '../../models/implementations/lectureModel';
+import { ILecture } from '../../models/interfaces/ILecture-interface';
 
 export interface ILectureRepository {
   createLecture(lectureData: Partial<ILecture>): Promise<ILecture>;

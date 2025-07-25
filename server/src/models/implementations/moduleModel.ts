@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { IModule } from "../interfaces/IModule-interface";
 
 export interface IModule extends Document {
   course: mongoose.Types.ObjectId;

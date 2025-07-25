@@ -1,7 +1,8 @@
-import { ICourse } from '../../models/interfaces/course.interface';
-import { IInstructor } from '../../models/interfaces/instructorAuth.interface';
+import { ICourse } from '../../models/interfaces/ICourse-interface';
+import { IInstructor } from '../../models/interfaces/IInstructorAuth-interface';
 import { IModule } from '../../models/implementations/moduleModel';
 import { ILecture } from '../../models/implementations/lectureModel';
+import { IInstructorBankInfo } from '../../models/interfaces/IInstructorBankInfo-interface';
 
 export interface DashboardStats {
   totalStudents: number;
@@ -39,4 +40,8 @@ export interface IInstructorService {
   deleteLecture(lectureId: string): Promise<void>;
   getLectures(moduleId: string): Promise<ILecture[]>;
   reorderLectures(moduleId: string, lectureOrder: string[]): Promise<void>;
+
+  getBankInfo(instructorId: string): Promise<IInstructorBankInfo | null>;
+  upsertBankInfo(instructorId: string, data: Partial<IInstructorBankInfo>): Promise<IInstructorBankInfo>;
+  deleteBankInfo(instructorId: string): Promise<void>;
 } 

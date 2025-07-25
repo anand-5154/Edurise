@@ -1,3 +1,5 @@
+import { IInstructor } from '../../models/interfaces/IInstructorAuth-interface';
+
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;

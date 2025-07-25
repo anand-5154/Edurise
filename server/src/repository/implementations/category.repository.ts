@@ -1,14 +1,19 @@
 import { ICategoryRepository } from '../interfaces/category.repository';
 import CategoryModel, { ICategory } from '../../models/Category';
+import { BaseRepository } from './base.repository';
 
-export class CategoryRepository implements ICategoryRepository {
+export class CategoryRepository extends BaseRepository<ICategory> implements ICategoryRepository {
+  constructor() {
+    super(CategoryModel);
+  }
+
   async findAll(): Promise<ICategory[]> {
-    return await CategoryModel.find().sort({ createdAt: -1 });
+    return this.model.find().sort({ createdAt: -1 });
   }
 
   async create(name: string): Promise<ICategory> {
     try {
-      const category = new CategoryModel({ name });
+      const category = new this.model({ name });
       return await category.save();
     } catch (err: any) {
       console.error('Category creation error:', err); // Log the full error
@@ -24,10 +29,10 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async update(id: string, name: string): Promise<ICategory | null> {
-    return await CategoryModel.findByIdAndUpdate(id, { name }, { new: true });
+    return this.model.findByIdAndUpdate(id, { name }, { new: true });
   }
 
   async delete(id: string): Promise<ICategory | null> {
-    return await CategoryModel.findByIdAndDelete(id);
+    return this.model.findByIdAndDelete(id);
   }
 } 

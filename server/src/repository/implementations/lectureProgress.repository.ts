@@ -22,4 +22,8 @@ export class LectureProgressRepository {
   async findByUserAndCourse(userId: string, courseId: string) {
     return LectureProgress.find({ user: new mongoose.Types.ObjectId(userId), course: new mongoose.Types.ObjectId(courseId) });
   }
+
+  async findByCourseAndUsers(courseId: string, userIds: string[]) {
+    return LectureProgress.find({ course: courseId, user: { $in: userIds } });
+  }
 } 

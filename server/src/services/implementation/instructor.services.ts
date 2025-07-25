@@ -1,20 +1,25 @@
 import { IInstructorService } from "../interfaces/instructor.services";
 import { IInstructorAuthRepository } from "../../repository/interfaces/instructorAuth.interface";
 import { ICourseRepository } from "../../repository/interfaces/course.repository";
-import { IEnrollmentRepository } from "../../repository/interfaces/enrollment.interface";
+import { IEnrollmentRepository } from "../../repository/interfaces/IEnrollmentRepository-interface";
 import { IMessageRepository } from "../../repository/interfaces/message.interface";
 import { IInstructor } from "../../models/interfaces/instructorAuth.interface";
-import { IUser } from "../../models/interfaces/auth.interface";
+import { IUser } from "../../models/interfaces/IAuth-interface";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { ICourse } from "../../models/interfaces/course.interface";
-import { IEnrollment } from "../../models/interfaces/enrollment.interface";
+import { IEnrollment } from "../../models/interfaces/IEnrollment-interface";
 import { IMessage } from "../../models/implementations/messageModel";
 import { messages } from '../../constants/messages';
 import { IModuleRepository } from '../../repository/interfaces/module.repository';
 import { ILectureRepository } from '../../repository/interfaces/lecture.repository';
 import { IModule } from '../../models/implementations/moduleModel';
 import { ILecture } from '../../models/implementations/lectureModel';
+import { InstructorBankInfoRepository } from '../../repository/implementations/instructorBankInfo.repository';
+import { IInstructorBankInfo } from '../../models/interfaces/instructorBankInfo.interface';
+import { IUserRepository } from '../../repository/interfaces/IUserRepository-interface';
+import { LectureProgressRepository } from '../../repository/implementations/lectureProgress.repository';
+import { IInstructorBankInfoRepository } from '../../repository/interfaces/instructorBankInfo.interface';
 
 interface DashboardStats {
   totalStudents: number;
@@ -42,7 +47,10 @@ export class InstructorService implements IInstructorService {
     private enrollmentRepository: IEnrollmentRepository,
     private messageRepository: IMessageRepository,
     private moduleRepository: IModuleRepository,
-    private lectureRepository: ILectureRepository
+    private lectureRepository: ILectureRepository,
+    private userRepository: IUserRepository,
+    private lectureProgressRepository: LectureProgressRepository,
+    private bankInfoRepository: IInstructorBankInfoRepository
   ) {}
 
   async createCourse(instructorId: string, courseData: Partial<ICourse>): Promise<ICourse> {
@@ -219,8 +227,7 @@ export class InstructorService implements IInstructorService {
       );
 
       // 2. Get user details for enrolled students
-      const User = require('../../models/implementations/userModel').default;
-      const users = await User.find({ _id: { $in: studentIds } }).select('_id name email');
+      const users = await this.userRepository.findUsersByIds(studentIds);
       const userMap: Record<string, { _id: string, name: string, email: string }> = {};
       users.forEach((u: any) => { userMap[u._id.toString()] = { _id: u._id.toString(), name: u.name, email: u.email }; });
 
@@ -232,8 +239,7 @@ export class InstructorService implements IInstructorService {
       console.log('[getCourseLectureProgress] modules:', JSON.stringify(modules, null, 2));
 
       // 4. Get all lecture progress for this course
-      const LectureProgress = require('../../models/implementations/lectureProgressModel').default;
-      const allProgress = await LectureProgress.find({ course: courseId, user: { $in: studentIds } });
+      const allProgress = await this.lectureProgressRepository.findByCourseAndUsers(courseId, studentIds);
 
       // 5. Aggregate progress per student
       const progressByUser: Record<string, { completedLectures: string[], completedModules: string[] }> = {};
@@ -299,5 +305,17 @@ export class InstructorService implements IInstructorService {
 
   async reorderLectures(moduleId: string, lectureOrder: string[]): Promise<void> {
     await this.lectureRepository.reorderLectures(moduleId, lectureOrder);
+  }
+
+  async getBankInfo(instructorId: string): Promise<IInstructorBankInfo | null> {
+    return this.bankInfoRepository.getBankInfoByInstructorId(instructorId);
+  }
+
+  async upsertBankInfo(instructorId: string, data: Partial<IInstructorBankInfo>): Promise<IInstructorBankInfo> {
+    return this.bankInfoRepository.updateBankInfo(instructorId, { ...data, instructor: instructorId });
+  }
+
+  async deleteBankInfo(instructorId: string): Promise<void> {
+    await this.bankInfoRepository.deleteBankInfo(instructorId);
   }
 } 

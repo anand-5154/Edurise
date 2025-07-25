@@ -1,4 +1,4 @@
-import { IEnrollment } from '../../models/interfaces/enrollment.interface';
+import { IEnrollment } from '../../models/interfaces/IEnrollment-interface';
 
 export interface IEnrollmentRepository {
   // Basic CRUD operations

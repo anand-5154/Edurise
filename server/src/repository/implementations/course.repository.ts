@@ -1,6 +1,6 @@
-import { ICourseRepository, GetCoursesParams } from '../interfaces/course.repository';
-import { ICourse } from '../../models/interfaces/course.interface';
-import { GetAllCoursesParams, GetAllCoursesResult } from '../../services/interfaces/user.services';
+import { ICourseRepository, GetCoursesParams } from '../interfaces/ICourseRepository-interface';
+import { ICourse } from '../../models/interfaces/ICourse-interface';
+import { GetAllCoursesParams, GetAllCoursesResult } from '../../services/interfaces/IUserService-interface';
 import Course from '../../models/implementations/courseModel';
 import Enrollment from '../../models/implementations/enrollmentModel';
 import { BaseRepository } from './base.repository';
@@ -134,9 +134,12 @@ export class CourseRepository extends BaseRepository<ICourse> implements ICourse
     ]);
   }
 
-  async getCoursesWithPagination(params: GetAllCoursesParams): Promise<GetAllCoursesResult> {
+  async getCoursesWithPagination(params: GetAllCoursesParams, includeUnpublished = false): Promise<GetAllCoursesResult> {
     const { page, limit, sort, order, search, category, level, minPrice, maxPrice } = params;
-    const query: any = { isPublished: true };
+    const query: any = {};
+    if (!includeUnpublished) {
+      query.isPublished = true;
+    }
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -173,5 +176,61 @@ export class CourseRepository extends BaseRepository<ICourse> implements ICourse
 
   async findOne(filter: any): Promise<ICourse | null> {
     return this.model.findOne(filter);
+  }
+
+  async getTopCoursesByEnrollments(limit = 3): Promise<any[]> {
+    return this.model.aggregate([
+      {
+        $lookup: {
+          from: 'enrollments',
+          localField: '_id',
+          foreignField: 'course',
+          as: 'enrollments',
+        },
+      },
+      {
+        $addFields: {
+          enrollmentsCount: { $size: '$enrollments' },
+        },
+      },
+      { $sort: { enrollmentsCount: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          enrollmentsCount: 1,
+        },
+      },
+    ]);
+  }
+
+  async getTopCoursesByCompletions(limit = 3): Promise<any[]> {
+    return this.model.aggregate([
+      {
+        $lookup: {
+          from: 'enrollments',
+          let: { courseId: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $and: [ { $eq: ['$course', '$$courseId'] }, { $eq: ['$status', 'completed'] } ] } } },
+          ],
+          as: 'completedEnrollments',
+        },
+      },
+      {
+        $addFields: {
+          completionsCount: { $size: '$completedEnrollments' },
+        },
+      },
+      { $sort: { completionsCount: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          completionsCount: 1,
+        },
+      },
+    ]);
   }
 } 

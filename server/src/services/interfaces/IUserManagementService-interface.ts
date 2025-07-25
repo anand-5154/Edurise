@@ -1,4 +1,4 @@
-import { IUser } from '../../models/interfaces/auth.interface';
+import { IUser } from '../../models/interfaces/IAuth-interface';
 
 export interface IUserManagementService {
   // User CRUD operations

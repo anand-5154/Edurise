@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IInstructor } from "../interfaces/instructorAuth.interface";
+import { IInstructor } from "../interfaces/IInstructorAuth-interface";
 
 const instructorSchema: Schema<IInstructor> = new Schema({
     name: {
@@ -42,6 +42,10 @@ const instructorSchema: Schema<IInstructor> = new Schema({
         type: [String],
         required: true,
         trim: true
+    },
+    documentUrl: {
+        type: String,
+        required: false
     },
     role: {
         type: String,

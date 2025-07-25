@@ -1,30 +1,36 @@
 import { ILectureRepository } from '../interfaces/lecture.repository';
-import Lecture, { ILecture } from '../../models/implementations/lectureModel';
+import { ILecture } from '../../models/interfaces/ILecture-interface';
+import Lecture from '../../models/implementations/lectureModel';
+import { BaseRepository } from './base.repository';
 
-export class LectureRepository implements ILectureRepository {
+export class LectureRepository extends BaseRepository<ILecture> implements ILectureRepository {
+  constructor() {
+    super(Lecture);
+  }
+
   async createLecture(lectureData: Partial<ILecture>): Promise<ILecture> {
-    return Lecture.create(lectureData);
+    return this.model.create(lectureData);
   }
 
   async findById(lectureId: string): Promise<ILecture | null> {
-    return Lecture.findById(lectureId);
+    return this.model.findById(lectureId);
   }
 
   async findByModule(moduleId: string): Promise<ILecture[]> {
-    return Lecture.find({ module: moduleId }).sort({ order: 1 });
+    return this.model.find({ module: moduleId }).sort({ order: 1 });
   }
 
   async updateLecture(lectureId: string, update: Partial<ILecture>): Promise<ILecture | null> {
-    return Lecture.findByIdAndUpdate(lectureId, update, { new: true });
+    return this.model.findByIdAndUpdate(lectureId, update, { new: true });
   }
 
   async deleteLecture(lectureId: string): Promise<void> {
-    await Lecture.findByIdAndDelete(lectureId);
+    await this.model.findByIdAndDelete(lectureId);
   }
 
   async reorderLectures(moduleId: string, lectureOrder: string[]): Promise<void> {
     for (let i = 0; i < lectureOrder.length; i++) {
-      await Lecture.findByIdAndUpdate(lectureOrder[i], { order: i + 1 });
+      await this.model.findByIdAndUpdate(lectureOrder[i], { order: i + 1 });
     }
   }
 } 

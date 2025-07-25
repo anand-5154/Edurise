@@ -1,5 +1,5 @@
-import { IUser } from "../../models/interfaces/auth.interface";
-import { IAuthRepository } from "../interfaces/auth.interface";
+import { IUser } from "../../models/interfaces/IAuth-interface";
+import { IAuthRepository } from "../interfaces/IAuthRepository-interface";
 import User from "../../models/implementations/userModel";
 import { BaseRepository } from "./base.repository";
 

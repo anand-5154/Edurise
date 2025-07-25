@@ -1,4 +1,4 @@
-import { IOtp } from "../../models/interfaces/otp.interface";
+import { IOtp } from '../../models/interfaces/IOtp-interface';
 
 export interface IOtpRepository {
     saveOTP(data:{email:string,otp:string,expiresAt:Date}):Promise<IOtp|null>,

@@ -1,4 +1,4 @@
-import { IInstructor } from "../../models/interfaces/instructorAuth.interface";
+import { IInstructor } from '../../models/interfaces/IInstructorAuth-interface';
 
 export interface IInstructorAuthService{
     registerInstructor(email:string):Promise<void>

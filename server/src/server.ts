@@ -49,14 +49,28 @@ const server = http.createServer(app)
 
 app.use(nocache())
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      styleSrcElem: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      fontSrcElem: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      imgSrc: ["'self'", 'data:', 'https://*.googleusercontent.com'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'self'"],
+    },
+  },
 }))
 app.use(morgan("dev"))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 
-app.use("/users", userRoutes)
+app.use("/api/users", userRoutes)
 app.use("/instructors", instructorRoutes)
 app.use("/admin", adminRoutes)
 

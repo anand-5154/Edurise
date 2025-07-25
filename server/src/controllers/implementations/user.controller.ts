@@ -10,6 +10,7 @@ export class UserController implements IUserController {
   constructor(private _userService: IUserService) {}
 
   async getAllCourses(req: Request, res: Response): Promise<void> {
+    console.log('UserController: getAllCourses called', req.query);
     try {
       const { page = 1, limit = 10, sort = 'createdAt', order = 'desc', search = '', category = '', level = '', minPrice = '', maxPrice = '' } = req.query;
       const courses = await this._userService.getAllCourses({
@@ -23,6 +24,7 @@ export class UserController implements IUserController {
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined
       });
+      console.log('UserController: getAllCourses returning', Array.isArray(courses) ? courses.length : courses);
       res.status(httpStatus.OK).json(courses);
     } catch (err) {
       console.error('Get all courses error:', err);
@@ -221,6 +223,17 @@ export class UserController implements IUserController {
     } catch (err) {
       console.error('[UserController] completeLecture error:', err);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to update progress', error: err instanceof Error ? err.message : err });
+    }
+  }
+
+  async getPurchasedCourses(req: Request, res: Response): Promise<void> {
+    try {
+      // @ts-ignore
+      const userId = req.user.id;
+      const courses = await this._userService.getPurchasedCourses(userId);
+      res.status(200).json(courses);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch purchased courses', error: err instanceof Error ? err.message : err });
     }
   }
 } 

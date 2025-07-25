@@ -1,8 +1,7 @@
-import { IUser } from "../../models/interfaces/auth.interface";
-import { IInstructor } from "../../models/interfaces/instructorAuth.interface";
-import { GetAllCoursesParams, GetAllCoursesResult } from "./user.services";
-import { Category } from '../../models/Category';
-import { IModule } from '../../models/implementations/moduleModel';
+import { IUser } from "../../models/interfaces/IAuth-interface";
+import { IInstructor } from '../../models/interfaces/IInstructorAuth-interface';
+import { GetAllCoursesParams, GetAllCoursesResult } from "./IUserService-interface";
+import { ICategory } from '../../models/interfaces/ICategory-interface';
 
 export interface DashboardStats {
     totalUsers: number;
@@ -13,7 +12,8 @@ export interface DashboardStats {
 }
 
 export interface LoginResponse {
-    token: string;
+    accessToken: string;
+    refreshToken: string;
     admin: {
         id: string;
         email: string;
@@ -33,10 +33,10 @@ export interface IAdminService{
     getAllCourses(params: GetAllCoursesParams): Promise<GetAllCoursesResult>;
     deleteCourse(courseId: string): Promise<void>;
     updateCourseStatus(courseId: string, status: string): Promise<void>;
-    getCategories(): Promise<Category[]>;
-    createCategory(name: string): Promise<Category>;
-    updateCategory(id: string, name: string): Promise<Category | null>;
-    deleteCategory(id: string): Promise<Category | null>;
+    getCategories(): Promise<ICategory[]>;
+    createCategory(name: string): Promise<ICategory>;
+    updateCategory(id: string, name: string): Promise<ICategory | null>;
+    deleteCategory(id: string): Promise<ICategory | null>;
     refreshToken(token: string): Promise<{ accessToken: string }>;
     getUserDetailsWithProgress(userId: string): Promise<any>;
     getProfile(adminId: string): Promise<any>;
@@ -49,4 +49,6 @@ export interface IAdminService{
     unblockInstructor(instructorId: string): Promise<void>;
     getStudentModuleProgress(userId: string, courseId: string): Promise<{ completedModules: number; totalModules: number; }>;
     getCoursePerformance(courseId: string): Promise<{ enrollments: number; }>;
+    getUserTrends(): Promise<{ topEnrolled: any[]; topCompleted: any[] }>;
+    getCourseTrends(): Promise<{ topEnrolled: any[]; topCompleted: any[] }>;
 }

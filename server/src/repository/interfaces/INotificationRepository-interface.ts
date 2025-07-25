@@ -1,4 +1,4 @@
-import { INotification } from '../../models/implementations/notificationModel';
+import { INotification } from '../../models/interfaces/INotification-interface';
 
 export interface INotificationRepository {
   createNotification(notification: Partial<INotification>): Promise<INotification>;

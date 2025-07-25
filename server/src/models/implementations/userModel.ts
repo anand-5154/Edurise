@@ -1,5 +1,5 @@
 import mongoose,{Schema} from "mongoose"
-import {IUser} from "../interfaces/auth.interface"
+import { IUser } from "../interfaces/IAuth-interface";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 

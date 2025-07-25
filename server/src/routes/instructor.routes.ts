@@ -12,19 +12,30 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { httpStatus } from "../constants/statusCodes";
 import { CourseRepository } from "../repository/implementations/course.repository";
 import { EnrollmentRepository } from "../repository/implementations/enrollment.repository";
+import { InstructorBankInfoRepository } from '../repository/implementations/instructorBankInfo.repository';
+import { UserRepository } from '../repository/implementations/user.repository';
+import { LectureProgressRepository } from '../repository/implementations/lectureProgress.repository';
 
 
 const instructorAuthRepository=new InstructorAuth()
 const otpRepository=new OtpRepository()
+const instructorBankInfoRepository = new InstructorBankInfoRepository();
 const instructorAuthService=new InstructorAuthSerivce(instructorAuthRepository,otpRepository)
 const instructorAuthController=new InstructorAuthController(instructorAuthService)
 const courseRepository = new CourseRepository();
 const enrollmentRepository = new EnrollmentRepository();
+const userRepository = new UserRepository();
+const lectureProgressRepository = new LectureProgressRepository();
 const instructorService = new InstructorService(
   instructorAuthRepository,
   courseRepository,
-  enrollmentRepository
-  // Add other repositories as needed (messageRepository, moduleRepository, lectureRepository)
+  enrollmentRepository,
+  undefined, // messageRepository
+  undefined, // moduleRepository
+  undefined, // lectureRepository
+  userRepository, // <-- Pass the instance here!
+  lectureProgressRepository, // <-- Pass the instance here!
+  instructorBankInfoRepository
 );
 const instructorController = new InstructorController(instructorService);
 
@@ -39,9 +50,8 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'instructor-profiles',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
-    transformation: [{ width: 300, height: 300, crop: 'limit' }],
+    public_id: (req, file) => `instructor-profiles/${Date.now()}-${file.originalname}`,
+    // transformation is not a supported top-level param, so remove it if linter complains
   },
 });
 const upload = multer({ storage });
@@ -126,6 +136,32 @@ router.post(
     }
     res.status(httpStatus.OK).json({ url: req.file.path });
   }
+);
+
+// Bank/payment info management
+router.get(
+  '/bank-info',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  instructorController.getBankInfo.bind(instructorController)
+);
+router.post(
+  '/bank-info',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  instructorController.upsertBankInfo.bind(instructorController)
+);
+router.put(
+  '/bank-info',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  instructorController.upsertBankInfo.bind(instructorController)
+);
+router.delete(
+  '/bank-info',
+  authMiddleware,
+  roleMiddleware(['instructor']),
+  instructorController.deleteBankInfo.bind(instructorController)
 );
 
 export default router

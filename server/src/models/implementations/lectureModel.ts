@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { ILecture } from "../interfaces/ILecture-interface";
 
 export interface ILecture extends Document {
   module: mongoose.Types.ObjectId;

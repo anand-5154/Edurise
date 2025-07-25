@@ -1,5 +1,5 @@
-import { ICourse } from '../../models/interfaces/course.interface';
-import { GetAllCoursesParams, GetAllCoursesResult } from './user.services';
+import { ICourse } from '../../models/interfaces/ICourse-interface';
+import { GetAllCoursesParams, GetAllCoursesResult } from './IUserService-interface';
 
 export interface ICourseManagementService {
   // Course CRUD operations

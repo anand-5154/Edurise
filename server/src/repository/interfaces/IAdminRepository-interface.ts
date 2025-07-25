@@ -1,4 +1,4 @@
-import { IUser } from "../../models/interfaces/auth.interface";
+import { IUser } from "../../models/interfaces/IAuth-interface";
 import { IInstructor } from "../../models/interfaces/instructorAuth.interface";
 import { DashboardStats } from "../../services/interfaces/admin.services";
 

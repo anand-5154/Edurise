@@ -30,7 +30,7 @@ export class InstructorAuthSerivce implements IInstructorAuthService{
         })
 
         try {
-            await sendMail(email,otp)
+        await sendMail(email,otp)
         } catch (err) {
             console.error('Failed to send registration OTP email:', err);
             throw new Error('Failed to send OTP email. Please try again later.');

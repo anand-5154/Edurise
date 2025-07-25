@@ -11,7 +11,9 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { UserRepository } from '../repository/implementations/user.repository';
 import { CategoryRepository } from "../repository/implementations/category.repository";
 import { LearningPathRepository } from '../repository/implementations/learningPath.repository';
+import { ModuleRepository } from "../repository/implementations/module.repository";
 import LearningPath from '../models/implementations/learningPathModel';
+import { PaymentService } from '../services/implementation/payment.service';
 
 const router = express.Router();
 
@@ -22,16 +24,20 @@ const courseRepository = new CourseRepository();
 const userRepository = new UserRepository();
 const categoryRepository = new CategoryRepository();
 const learningPathRepository = new LearningPathRepository();
+const moduleRepository = new ModuleRepository();
 
 // Initialize service
+const paymentService = new PaymentService();
+
 const adminService = new AdminService(
   adminRepository,
   instructorRepository,
   courseRepository,
+  paymentService,         // <-- Pass PaymentService here!
   instructorRepository,
   userRepository,
   categoryRepository,
-  learningPathRepository
+  moduleRepository
 );
 
 // Initialize controller
@@ -45,11 +51,11 @@ cloudinary.config({
 });
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
+  params: () => ({
     folder: 'admin-profiles',
     allowed_formats: ['jpg', 'jpeg', 'png'],
     transformation: [{ width: 300, height: 300, crop: 'limit' }],
-  },
+  }),
 });
 const upload = multer({ storage });
 
@@ -214,6 +220,22 @@ router.get(
   adminController.getUserActivityReportByCourse.bind(adminController)
 );
 
+// User trends (top users)
+router.get(
+  "/reports/user-trends",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  adminController.getUserTrends.bind(adminController)
+);
+
+// Course trends (top courses)
+router.get(
+  "/reports/course-trends",
+  authMiddleware,
+  roleMiddleware(["admin"]),
+  adminController.getCourseTrends.bind(adminController)
+);
+
 // Learning Path management
 router.get(
   '/learning-paths',
@@ -237,7 +259,8 @@ router.get(
     try {
       const path = await learningPathRepository.getLearningPathById(req.params.id);
       if (!path) {
-        return res.status(404).json({ message: 'Learning path not found' });
+        res.status(404).json({ message: 'Learning path not found' });
+        return;
       }
       res.json(path);
     } catch (err) {

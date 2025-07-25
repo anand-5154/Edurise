@@ -1,4 +1,4 @@
-import { IUser } from '../../models/interfaces/auth.interface';
+import { IUser } from '../../models/interfaces/IAuth-interface';
 
 export interface IUserRepository {
   // Basic CRUD operations
@@ -30,4 +30,7 @@ export interface IUserRepository {
   // User activity and analytics
   getUserActivityReport(): Promise<any[]>;
   getUserEnrollmentStats(userId: string): Promise<any>;
+  getTopUsersByEnrollments(limit?: number): Promise<any[]>;
+  getTopUsersByCompletions(limit?: number): Promise<any[]>;
+  getUserActivityReportByCourse(): Promise<any[]>;
 } 

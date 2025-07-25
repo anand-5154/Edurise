@@ -1,8 +1,8 @@
-import { IAdminController } from "../interfaces/admin.interface";
-import { IAdminService } from "../../services/interfaces/admin.services";
+import { IAdminController } from "../interfaces/IAdminController-interface";
+import { IAdminService } from "../../services/interfaces/IAdminService-interface";
 import { Request, Response } from "express";
 import { httpStatus } from "../../constants/statusCodes";
-import { GetAllCoursesParams } from "../../services/interfaces/user.services";
+import { GetAllCoursesParams } from "../../services/interfaces/IUserService-interface";
 import { AdminService } from '../../services/implementation/admin.sevices';
 import { messages } from '../../constants/messages';
 import { IModule } from '../../models/implementations/moduleModel';
@@ -102,6 +102,7 @@ export class AdminController implements IAdminController {
     }
 
     async getAllCourses(req: Request, res: Response): Promise<void> {
+        console.log('AdminController: getAllCourses called');
         try {
             const order = req.query.order as string;
             const params: GetAllCoursesParams = {
@@ -118,6 +119,7 @@ export class AdminController implements IAdminController {
             const courses = await this._adminService.getAllCourses(params);
             res.status(httpStatus.OK).json(courses);
         } catch (err) {
+            console.error('AdminController getAllCourses error:', err);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.INTERNAL_SERVER_ERROR });
         }
     }
@@ -144,8 +146,8 @@ export class AdminController implements IAdminController {
 
     // Category Management
     async getCategories(req: Request, res: Response): Promise<void> {
+        console.log('AdminController: getCategories called');
         try {
-            console.log('AdminController: getCategories called');
             const categories = await this._adminService.getCategories();
             res.status(httpStatus.OK).json(categories);
         } catch (error: any) {
@@ -352,18 +354,19 @@ export class AdminController implements IAdminController {
     }
 
     async getUserActivityReport(req: Request, res: Response): Promise<void> {
+        console.log('AdminController: getUserActivityReport called');
         try {
             const report = await this._adminService.getUserActivityReport();
             res.status(httpStatus.OK).json(report);
         } catch (err: any) {
-            console.error('User Activity Report Error:', err); // Log full error with stack trace
+            console.error('AdminController getUserActivityReport error:', err);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message, error: err });
         }
     }
 
     async getUserActivityReportByCourse(req: Request, res: Response): Promise<void> {
         try {
-            const report = await this._adminService.getUserActivityReportByCourse();
+            const report = await this._adminService.getUserActivityReport();
             res.status(httpStatus.OK).json(report);
         } catch (err: any) {
             console.error('User Activity Report By Course Error:', err);
@@ -372,10 +375,12 @@ export class AdminController implements IAdminController {
     }
 
     async getCoursePerformanceReport(req: Request, res: Response): Promise<void> {
+        console.log('AdminController: getCoursePerformanceReport called');
         try {
             const report = await this._adminService.getCoursePerformanceReport();
             res.status(httpStatus.OK).json(report);
         } catch (err: any) {
+            console.error('AdminController getCoursePerformanceReport error:', err);
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
         }
     }
@@ -397,6 +402,26 @@ export class AdminController implements IAdminController {
             res.status(httpStatus.OK).json(performance);
         } catch (err) {
             res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch course performance' });
+        }
+    }
+
+    async getUserTrends(req: Request, res: Response): Promise<void> {
+        console.log('AdminController: getUserTrends called');
+        try {
+            const trends = await this._adminService.getUserTrends();
+            res.status(httpStatus.OK).json(trends);
+        } catch (err: any) {
+            console.error('AdminController getUserTrends error:', err);
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
+        }
+    }
+
+    async getCourseTrends(req: Request, res: Response): Promise<void> {
+        try {
+            const trends = await this._adminService.getCourseTrends();
+            res.status(httpStatus.OK).json(trends);
+        } catch (err: any) {
+            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: err.message });
         }
     }
 }

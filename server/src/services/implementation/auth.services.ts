@@ -1,11 +1,11 @@
 import { IAuthService } from "../interfaces/auth.services"
-import { IAuthRepository } from "../../repository/interfaces/auth.interface"
+import { IAuthRepository } from "../../repository/interfaces/IAuthRepository-interface";
 import { IUser } from "../../models/interfaces/auth.interface"
 import generateOtp,{otpExpiry} from "../../utils/otpGenerator"
 import { sendMail } from "../../utils/sendMail"
 import bcrypt from "bcrypt"
 import { IOtpRepository } from "../../repository/interfaces/otp.interface"
-import { IUserRepository } from "../../repository/interfaces/user.interface";
+import { IUserRepository } from "../../repository/interfaces/IUserRepository-interface";
 import { generateOTP } from '../../utils/generateOTP';
 import { logger } from '../../utils/logger';
 import { hashPassword } from '../../utils/hashPassword';

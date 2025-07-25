@@ -1,6 +1,6 @@
-import { IPaymentService } from '../interfaces/payment.interface';
+import { IPaymentService } from '../interfaces/IPaymentService-interface';
 import { createOrder, verifyPayment } from './razorpay.service';
-import { IEnrollmentRepository } from '../../repository/interfaces/enrollment.interface';
+import { IEnrollmentRepository } from '../../repository/interfaces/IEnrollmentRepository-interface';
 import { httpStatus } from '../../constants/statusCodes';
 
 export class PaymentService implements IPaymentService {
@@ -21,7 +21,7 @@ export class PaymentService implements IPaymentService {
       
       return {
         orderId: order.id,
-        amount: order.amount,
+        amount: Number(order.amount), // Ensure type is number
         currency: order.currency
       };
     } catch (error) {

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { IMessage } from "../interfaces/IMessage-interface";
 
 export interface IMessage extends Document {
   student: mongoose.Types.ObjectId;

@@ -20,13 +20,12 @@ import { EnrollmentRepository } from '../repository/implementations/enrollment.r
 import { LectureProgressRepository } from '../repository/implementations/lectureProgress.repository';
 import { LearningPathRepository } from '../repository/implementations/learningPath.repository';
 
-const authRepository = new AuthRepository();
-const otpRepository = new OtpRepository()
-const authService = new AuthService(authRepository,otpRepository);
+const userRepository = new UserRepository();
+const otpRepository = new OtpRepository();
+const authService = new AuthService(userRepository, otpRepository);
 const authController = new Authcontroller(authService);
 
 // Initialize user controller and service
-const userRepository = new UserRepository();
 const categoryRepository = new CategoryRepository();
 const courseRepository = new CourseRepository();
 const moduleRepository = new ModuleRepository();
@@ -87,11 +86,11 @@ cloudinary.config({
 // Cloudinary storage config
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
+  params: () => ({
     folder: 'user-profiles',
     allowed_formats: ['jpg', 'jpeg', 'png'],
     transformation: [{ width: 300, height: 300, crop: 'limit' }],
-  },
+  }),
 });
 const upload = multer({ storage });
 
@@ -99,6 +98,8 @@ const upload = multer({ storage });
 router.use(authMiddleware);
 router.use(roleMiddleware(['user']));
 
+// My Courses endpoint
+router.get('/my-courses', userController.getPurchasedCourses.bind(userController));
 // Move this route below the middleware so req.user is set
 router.get('/courses/:courseId/modules', (req, res, next) => {
   // @ts-ignore

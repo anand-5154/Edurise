@@ -1,9 +1,14 @@
 import { IMessageRepository } from '../interfaces/message.interface';
 import Message, { IMessage } from '../../models/implementations/messageModel';
+import { BaseRepository } from './base.repository';
 
-export class MessageRepository implements IMessageRepository {
+export class MessageRepository extends BaseRepository<IMessage> implements IMessageRepository {
+  constructor() {
+    super(Message);
+  }
+
   async findByInstructor(instructorId: string, limit = 2): Promise<IMessage[]> {
-    return Message.find({ instructor: instructorId })
+    return this.model.find({ instructor: instructorId })
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate({
@@ -16,6 +21,6 @@ export class MessageRepository implements IMessageRepository {
   }
 
   async countByInstructor(instructorId: string): Promise<number> {
-    return Message.countDocuments({ instructor: instructorId });
+    return this.model.countDocuments({ instructor: instructorId });
   }
 } 

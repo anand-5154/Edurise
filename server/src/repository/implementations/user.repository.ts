@@ -1,7 +1,7 @@
 import User from '../../models/implementations/userModel';
 import { BaseRepository } from './base.repository';
-import { IUser } from '../../models/interfaces/auth.interface';
-import { IUserRepository } from '../interfaces/user.interface';
+import { IUser } from '../../models/interfaces/IAuth-interface';
+import { IUserRepository } from '../interfaces/IUserRepository-interface';
 import Enrollment from '../../models/implementations/enrollmentModel';
 
 export class UserRepository extends BaseRepository<IUser> implements IUserRepository {
@@ -73,6 +73,10 @@ export class UserRepository extends BaseRepository<IUser> implements IUserReposi
       totalPages: Math.ceil(total / limit),
       currentPage: page
     };
+  }
+
+  async findUsersByIds(userIds: string[]): Promise<IUser[]> {
+    return this.model.find({ _id: { $in: userIds } }).select('_id name email');
   }
 
   async getUserActivityReport(): Promise<any[]> {
@@ -178,5 +182,71 @@ export class UserRepository extends BaseRepository<IUser> implements IUserReposi
         }
       }
     ]);
+  }
+
+  async getTopUsersByEnrollments(limit = 3): Promise<any[]> {
+    // Top users by total enrollments
+    return this.model.aggregate([
+      {
+        $lookup: {
+          from: 'enrollments',
+          localField: '_id',
+          foreignField: 'student',
+          as: 'enrollments',
+        },
+      },
+      {
+        $addFields: {
+          totalEnrollments: { $size: '$enrollments' },
+        },
+      },
+      { $sort: { totalEnrollments: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          totalEnrollments: 1,
+        },
+      },
+    ]);
+  }
+
+  async getTopUsersByCompletions(limit = 3): Promise<any[]> {
+    // Top users by completed enrollments
+    return this.model.aggregate([
+      {
+        $lookup: {
+          from: 'enrollments',
+          let: { userId: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $and: [ { $eq: ['$student', '$$userId'] }, { $eq: ['$status', 'completed'] } ] } } },
+          ],
+          as: 'completedEnrollments',
+        },
+      },
+      {
+        $addFields: {
+          completedEnrollmentsCount: { $size: '$completedEnrollments' },
+        },
+      },
+      { $sort: { completedEnrollmentsCount: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          completedEnrollmentsCount: 1,
+        },
+      },
+    ]);
+  }
+
+  async createUser(userData: Partial<IUser>): Promise<IUser> {
+    const user = new this.model(userData);
+    await user.save();
+    return user;
   }
 } 

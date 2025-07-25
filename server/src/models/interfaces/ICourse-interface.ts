@@ -16,7 +16,7 @@ export interface ICourse extends Document {
   description: string;
   instructor: Types.ObjectId;
   price: number;
-  category: string;
+  category: string | Types.ObjectId;
   level: 'beginner' | 'intermediate' | 'advanced';
   duration: number;
   thumbnail: string;

@@ -29,7 +29,7 @@ export class EnrollmentRepository extends BaseRepository<IEnrollment> implements
   }
 
   async findEnrollmentByStudentAndCourse(studentId: string, courseId: string): Promise<IEnrollment | null> {
-    return this.model.findOne({ student: studentId, course: courseId });
+    return this.model.findOne({ student: studentId, course: courseId, status: 'completed' });
   }
 
   async getEnrollmentStats(courseId?: string): Promise<any> {
