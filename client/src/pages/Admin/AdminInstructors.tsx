@@ -19,6 +19,7 @@ interface Instructor {
   blocked: boolean;
   profilePicture?: string;
   createdAt: string;
+  documentUrl?: string; // Add documentUrl
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -276,6 +277,11 @@ const AdminInstructors = () => {
                         <li key={idx}>{edu}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+                {selectedInstructor.documentUrl && (
+                  <div>
+                    <strong>Uploaded Document:</strong> <a href={selectedInstructor.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Document</a>
                   </div>
                 )}
                 <div><strong>Status:</strong> {selectedInstructor.accountStatus}</div>

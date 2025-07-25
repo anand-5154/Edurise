@@ -17,7 +17,7 @@ const LearningPath: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axiosInstance.get('/users/learning-paths')
+    axiosInstance.get('/api/users/learning-paths')
       .then(res => setPaths(res.data))
       .catch(() => setPaths([]))
       .finally(() => setLoading(false));

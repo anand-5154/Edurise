@@ -379,10 +379,10 @@ export default function InstructorRegister() {
             {/* Years of Experience */}
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
-              <div>
+            <div>
                 {formData.yearsOfExperience.map((exp, idx) => (
                   <div key={idx} className="flex items-center mb-2">
-                    <input
+              <input
                       type="text"
                       value={exp}
                       onChange={e => handleArrayInputChange('yearsOfExperience', idx, e.target.value)}
@@ -393,7 +393,7 @@ export default function InstructorRegister() {
                   </div>
                 ))}
                 <button type="button" onClick={() => handleAddArrayField('yearsOfExperience')} className="mt-2 px-3 py-1 bg-purple-100 text-purple-700 rounded">Add Experience</button>
-                {errors.yearsOfExperience && <p className="mt-1 text-sm text-red-600">{errors.yearsOfExperience}</p>}
+              {errors.yearsOfExperience && <p className="mt-1 text-sm text-red-600">{errors.yearsOfExperience}</p>}
               </div>
             </div>
             {/* Education */}

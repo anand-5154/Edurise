@@ -19,7 +19,7 @@ const LearningArea: React.FC = () => {
   useEffect(() => {
     if (selectedPath) {
       setLoading(true);
-      axiosInstance.get(`/users/learning-paths/${selectedPath}/courses`)
+      axiosInstance.get(`/api/users/learning-paths/${selectedPath}/courses`)
         .then(res => setCourses(res.data))
         .catch(() => setCourses([]))
         .finally(() => setLoading(false));

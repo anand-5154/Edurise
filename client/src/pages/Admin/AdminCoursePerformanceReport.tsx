@@ -1,78 +1,104 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../services/apiService';
+import AdminTable, { type Column } from '../../components/AdminTable';
 
-interface Lecture {
-  _id: string;
+interface CoursePerformance {
   title: string;
-}
-interface Module {
-  _id: string;
-  title: string;
-  lectures: Lecture[];
-}
-interface Course {
-  _id: string;
-  title: string;
-  modules: Module[];
   enrollments: number;
+  completions: number;
 }
-interface StudentProgress {
-  completedLectures: string[]; // lecture IDs
+
+interface TopCourse {
+  _id: string;
+  title: string;
+  enrollmentsCount?: number;
+  completionsCount?: number;
 }
-interface CourseAnalytics {
-  course: Course;
-  students: StudentProgress[];
-}
+
+const columns: Column<CoursePerformance>[] = [
+  { label: 'Course', accessor: 'title', className: 'px-4 py-2 border-b font-medium' },
+  { label: 'Enrollments', accessor: 'enrollments', className: 'px-4 py-2 border-b' },
+  { label: 'Completions', accessor: 'completions', className: 'px-4 py-2 border-b' },
+];
+
+const CourseCard = ({ course, type }: { course: TopCourse; type: 'enrolled' | 'completed' }) => (
+  <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center border hover:shadow-lg transition-shadow">
+    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-xl font-bold text-blue-700 mb-2">
+      {course.title?.[0]?.toUpperCase() || '?'}
+    </div>
+    <div className="font-semibold text-gray-800 text-lg text-center">{course.title}</div>
+    <div className="mt-2 text-blue-700 font-bold text-xl">
+      {type === 'enrolled' && <>{course.enrollmentsCount} <span className="text-xs font-normal text-gray-500">enrollments</span></>}
+      {type === 'completed' && <>{course.completionsCount} <span className="text-xs font-normal text-gray-500">completions</span></>}
+    </div>
+  </div>
+);
 
 const AdminCoursePerformanceReport: React.FC = () => {
-  const [data, setData] = useState<CourseAnalytics[]>([]);
+  const [data, setData] = useState<CoursePerformance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [topEnrolled, setTopEnrolled] = useState<TopCourse[]>([]);
+  const [topCompleted, setTopCompleted] = useState<TopCourse[]>([]);
+  const [trendsLoading, setTrendsLoading] = useState(true);
 
   useEffect(() => {
-    axiosInstance.get('/admin/reports/course-performance-modular')
-      .then(res => setData(res.data))
+    setLoading(true);
+    axiosInstance.get('/admin/reports/course-performance')
+      .then(res => setData(res.data as CoursePerformance[]))
       .catch(() => setData([]))
-      .finally(() => setLoading(false));
+      .then(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setTrendsLoading(true);
+    axiosInstance.get('/admin/reports/course-trends')
+      .then(res => {
+        setTopEnrolled(res.data.topEnrolled || []);
+        setTopCompleted(res.data.topCompleted || []);
+      })
+      .catch(() => {
+        setTopEnrolled([]);
+        setTopCompleted([]);
+      })
+      .finally(() => setTrendsLoading(false));
   }, []);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Course Performance Report (Modular)</h1>
+      <h1 className="text-2xl font-bold mb-6">Course Performance Report</h1>
+      {/* Top Courses Section */}
+      <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-blue-700">Top Enrolled Courses</h2>
+          {trendsLoading ? (
+            <div>Loading...</div>
+          ) : topEnrolled.length === 0 ? (
+            <div className="text-gray-500">No data found.</div>
+          ) : (
+            <div className="flex gap-4 flex-wrap">
+              {topEnrolled.map(course => <CourseCard key={course._id} course={course} type="enrolled" />)}
+            </div>
+          )}
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-green-700">Top Completed Courses</h2>
+          {trendsLoading ? (
+            <div>Loading...</div>
+          ) : topCompleted.length === 0 ? (
+            <div className="text-gray-500">No data found.</div>
+          ) : (
+            <div className="flex gap-4 flex-wrap">
+              {topCompleted.map(course => <CourseCard key={course._id} course={course} type="completed" />)}
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Main Table Section */}
       {loading ? (
         <div>Loading...</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 border-b">Course</th>
-                <th className="px-4 py-2 border-b">Enrollments</th>
-                {/* For each course, show module columns dynamically */}
-                {data.length > 0 && data[0].course.modules.map((mod) => (
-                  <th key={mod._id} className="px-4 py-2 border-b">{mod.title} Completion</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(({ course, students }) => (
-                <tr key={course._id}>
-                  <td className="px-4 py-2 border-b font-medium">{course.title}</td>
-                  <td className="px-4 py-2 border-b">{course.enrollments}</td>
-                  {course.modules.map(mod => {
-                    const completedCount = students.filter(student =>
-                      mod.lectures.every(lec => student.completedLectures.includes(lec._id))
-                    ).length;
-                    const percent = course.enrollments > 0 ? Math.round((completedCount / course.enrollments) * 100) : 0;
-                    return (
-                      <td key={mod._id} className="px-4 py-2 border-b text-center">
-                        {completedCount} / {course.enrollments} ({percent}%)
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <AdminTable columns={columns} data={data} emptyMessage="No course performance data found." />
         </div>
       )}
     </div>

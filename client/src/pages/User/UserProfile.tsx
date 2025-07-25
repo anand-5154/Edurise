@@ -37,7 +37,7 @@ const UserProfile: React.FC = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await apiService.get('/users/profile');
+      const response = await apiService.get('/api/users/profile');
       setUserData(response.data);
       setEditedData(response.data);
       setIsLoading(false);
@@ -83,7 +83,7 @@ const UserProfile: React.FC = () => {
       const formData = new FormData();
       formData.append('profilePicture', selectedFile);
 
-      const response = await apiService.post('/users/upload-profile-picture', formData, {
+      const response = await apiService.post('/api/users/upload-profile-picture', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -120,7 +120,7 @@ const UserProfile: React.FC = () => {
         profilePicture: profilePictureUrl
       };
 
-      const response = await apiService.put('/users/profile', updateData);
+      const response = await apiService.put('/api/users/profile', updateData);
       
       setUserData(response.data);
       setEditedData(response.data);
@@ -156,7 +156,7 @@ const UserProfile: React.FC = () => {
     }
     setIsChangingPassword(true);
     try {
-      await apiService.put('/users/change-password', {
+      await apiService.put('/api/users/change-password', {
         currentPassword,
         newPassword,
       });

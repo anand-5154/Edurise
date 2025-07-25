@@ -42,6 +42,11 @@ export default function Navbar() {
                 <Link to="/learning-area" className="text-blue-600 font-semibold hover:underline">
                     Learning Area
                 </Link>
+                {isAuthenticated && (
+                  <Link to="/my-courses" className="text-purple-600 font-semibold hover:underline">
+                    My Courses
+                  </Link>
+                )}
             </div>
 
             {/* Icons and Auth Buttons */}

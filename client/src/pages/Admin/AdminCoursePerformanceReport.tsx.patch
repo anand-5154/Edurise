@@ -1,0 +1,46 @@
+{data.length > 0 && data[0]?.course?.modules?.map((mod) => (
+                  <th key={mod._id} className="px-4 py-2 border-b">?{mod.title} Completion</th>
+                ))}
+=======
+                {/* For each course, show module columns dynamically */}
+                {data.length > 0 && data[0]?.course?.modules?.length ? data[0].course.modules.map((mod) => (
+                  <th key={mod._id} className="px-4 py-2 border-b">{mod?.title ?? 'Untitled Module'} Completion</th>
+                )) : null}
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+              {data.map(({ course, students }) => (
+                <tr key={course._id}>
+                  <td className="px-4 py-2 border-b font-medium">?{course.title}</td>
+                  <td className="px-4 py-2 border-b">{course.enrollments}</td>
+                  {course.modules.map(mod => {
+                    const completedCount = students.filter(student =>
+                      mod.lectures.every(lec => student.completedLectures.includes(lec._id))
+                    ).length;
+                    const percent = course.enrollments > 0 ? Math.round((completedCount / course.enrollments) * 100) : 0;
+                    return (
+                      <td key={mod._id} className="px-4 py-2 border-b text-center">
+                        {completedCount} / {course.enrollments} ({percent}%)
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+=======
+              {data.map(({ course, students }) => (
+                <tr key={course?._id ?? Math.random()}>
+                  <td className="px-4 py-2 border-b font-medium">{course?.title ?? 'Untitled Course'}</td>
+                  <td className="px-4 py-2 border-b">{course?.enrollments ?? 0}</td>
+                  {course?.modules?.length ? course.modules.map(mod => {
+                    const completedCount = students.filter(student =>
+                      mod.lectures.every(lec => student.completedLectures.includes(lec._id))
+                    ).length;
+                    const percent = course.enrollments > 0 ? Math.round((completedCount / course.enrollments) * 100) : 0;
+                    return (
+                      <td key={mod._id} className="px-4 py-2 border-b text-center">
+                        {completedCount} / {course.enrollments} ({percent}%)
+                      </td>
+                    );
+                  }) : null}
+                </tr>
+              ))}

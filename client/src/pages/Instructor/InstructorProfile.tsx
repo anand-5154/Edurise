@@ -363,11 +363,11 @@ const InstructorProfile: React.FC = () => {
                   <div>
                     {(editedData.yearsOfExperience || ['']).map((exp, idx) => (
                       <div key={idx} className="flex items-center mb-2">
-                        <input
-                          type="text"
+                  <input
+                    type="text"
                           value={exp}
                           onChange={e => handleArrayInputChange('yearsOfExperience', idx, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder={`Experience #${idx + 1}`}
                         />
                         <button type="button" onClick={() => handleRemoveArrayField('yearsOfExperience', idx)} className="ml-2 text-red-600">Remove</button>

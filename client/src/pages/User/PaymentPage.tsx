@@ -31,7 +31,7 @@ const PaymentPage: React.FC = () => {
   useEffect(() => {
     if (!course && courseId) {
       setLoading(true);
-      axiosInstance.get(`/users/courses/${courseId}`)
+      axiosInstance.get(`/api/users/courses/${courseId}`)
         .then(res => setCourse(res.data as Course))
         .catch(() => setCourse(null))
         .then(() => setLoading(false));

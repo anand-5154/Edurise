@@ -58,7 +58,7 @@ const EditCourse: React.FC = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axiosInstance.get('/users/categories');
+        const response = await axiosInstance.get('/api/users/categories');
         setCategories(response.data as Category[]);
       } catch (error) {
         errorToast('Failed to fetch categories');

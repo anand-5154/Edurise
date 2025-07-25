@@ -56,7 +56,7 @@ const CreateCourse: React.FC = () => {
     // Fetch categories when component mounts
     const fetchCategories = async () => {
       try {
-        const response = await axiosInstance.get('/users/categories');
+        const response = await axiosInstance.get('/api/users/categories');
         setCategories(response.data);
       } catch (error) {
         errorToast('Failed to fetch categories');

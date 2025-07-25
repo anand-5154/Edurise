@@ -123,7 +123,7 @@ export default function UserLogin() {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = `${API_URL}/users/auth/google`;
+    window.location.href = `${API_URL}/api/users/auth/google`;
   }
 
   const isFormValid = email.trim() !== '' && password.trim() !== '' && !errors.email && !errors.password

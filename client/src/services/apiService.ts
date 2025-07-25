@@ -92,19 +92,19 @@ axiosInstance.interceptors.response.use(
 
             if (currentPath.startsWith('/instructors')) {
                 refreshToken = localStorage.getItem('instructorRefreshToken');
-                refreshEndpoint = '/instructors/refresh-token';
+                refreshEndpoint = '/api/instructors/refresh-token';
                 accessTokenKey = 'instructorAccessToken';
                 refreshTokenKey = 'instructorRefreshToken';
                 loginUrl = '/instructors/login';
             } else if (currentPath.startsWith('/admin')) {
                 refreshToken = localStorage.getItem('adminRefreshToken');
-                refreshEndpoint = '/admin/refresh-token'; // Assuming this exists
+                refreshEndpoint = '/api/admin/refresh-token'; // Assuming this exists
                 accessTokenKey = 'adminAccessToken';
                 refreshTokenKey = 'adminRefreshToken';
                 loginUrl = '/admin/login';
             } else {
                 refreshToken = localStorage.getItem('refreshToken');
-                refreshEndpoint = '/users/refresh-token';
+                refreshEndpoint = '/api/users/refresh-token';
                 accessTokenKey = 'accessToken';
                 refreshTokenKey = 'refreshToken';
                 loginUrl = '/users/login';
@@ -113,7 +113,11 @@ axiosInstance.interceptors.response.use(
             if (!refreshToken) {
                 localStorage.removeItem(accessTokenKey);
                 localStorage.removeItem(refreshTokenKey);
-                window.location.href = loginUrl;
+                if (currentPath.startsWith('/admin')) {
+                    window.location.href = '/admin/login';
+                } else {
+                    window.location.href = loginUrl;
+                }
                 return Promise.reject(error);
             }
 
@@ -127,7 +131,11 @@ axiosInstance.interceptors.response.use(
             } catch (refreshError) {
                 localStorage.removeItem(accessTokenKey);
                 localStorage.removeItem(refreshTokenKey);
-                window.location.href = loginUrl;
+                if (currentPath.startsWith('/admin')) {
+                    window.location.href = '/admin/login';
+                } else {
+                    window.location.href = loginUrl;
+                }
                 processQueue(refreshError, null);
                 return Promise.reject(refreshError);
             } finally {
@@ -148,7 +156,7 @@ export const verifyRazorpayPayment = async (order_id: string, payment_id: string
 };
 
 export const checkUserEnrolled = async (courseId: string) => {
-  return axiosInstance.get(`/users/courses/${courseId}/enrolled`);
+  return axiosInstance.get(`/api/users/courses/${courseId}/enrolled`);
 };
 
 export default axiosInstance

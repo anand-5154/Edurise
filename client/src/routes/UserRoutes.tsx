@@ -14,6 +14,7 @@ import PaymentPage from '../pages/User/PaymentPage';
 import LearningPage from '../pages/User/LearningPage';
 import LearningArea from '../pages/User/LearningArea';
 import LearningPath from '../pages/User/LearningPath';
+import MyCourses from '../pages/User/MyCourses';
 
 const UserRoutes = () => {
   return (
@@ -33,6 +34,7 @@ const UserRoutes = () => {
       <Route path="/profile" element={<UserProfile/>}/>
       <Route path="/learning-area" element={<LearningArea />} />
       <Route path="/learning-area/path" element={<LearningPath />} />
+      <Route path="/my-courses" element={<MyCourses/>}/>
     </Routes>
   )
 }

@@ -42,7 +42,7 @@ const CourseDetails: React.FC<CourseDetailsProps> = ({ mode = 'user', fetchEndpo
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const endpoint = fetchEndpoint || (mode === 'admin' ? `/admin/courses/${courseId}` : `/users/courses/${courseId}`);
+        const endpoint = fetchEndpoint || (mode === 'admin' ? `/admin/courses/${courseId}` : `/api/users/courses/${courseId}`);
         const response = await axiosInstance.get(endpoint);
         setCourse(response.data as Course);
       } catch (error: any) {
@@ -72,7 +72,7 @@ const CourseDetails: React.FC<CourseDetailsProps> = ({ mode = 'user', fetchEndpo
   useEffect(() => {
     if (mode === 'admin') return; // Skip progress for admin
     if (isEnrolled && courseId) {
-      axiosInstance.get(`/users/courses/${courseId}/progress`)
+      axiosInstance.get(`api/users/courses/${courseId}/progress`)
         .then(res => {
           const data = res.data as { completedLectures: number[] };
           setCompletedLectures(data.completedLectures || []);
@@ -84,7 +84,7 @@ const CourseDetails: React.FC<CourseDetailsProps> = ({ mode = 'user', fetchEndpo
   const handleMarkCompleted = async (lectureIdx: number) => {
     if (!courseId || mode === 'admin') return;
     try {
-      await axiosInstance.post(`/users/courses/${courseId}/lectures/${lectureIdx}/complete`);
+      await axiosInstance.post(`/api/users/courses/${courseId}/lectures/${lectureIdx}/complete`);
       setCompletedLectures(prev => [...prev, lectureIdx]);
     } catch (err) {
       errorToast('Failed to mark as completed');

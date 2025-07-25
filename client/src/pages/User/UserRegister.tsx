@@ -196,7 +196,7 @@ const UserRegister = () => {
 
     setIsLoading(true);
     try {
-      const response = await axiosInstance.post("/users/register", { email: formData.email })
+      const response = await axiosInstance.post("/api/users/register", { email: formData.email })
       if(response && response.status === 200) {
         successToast((response.data as { message: string }).message)
         localStorage.setItem("signUpData", JSON.stringify(formData))
@@ -211,7 +211,7 @@ const UserRegister = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${API_URL}/users/auth/google`;
+    window.location.href = `${API_URL}/api/users/auth/google`;
   }
 
   return (

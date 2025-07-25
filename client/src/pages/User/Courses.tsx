@@ -65,7 +65,7 @@ const Courses = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axiosInstance.get<Category[]>('/users/categories');
+      const response = await axiosInstance.get<Category[]>('/api/users/categories');
       setCategories(response.data);
     } catch (error) {
       errorToast('Failed to fetch categories');
@@ -88,7 +88,7 @@ const Courses = () => {
       if (maxPrice) paramsObj.maxPrice = maxPrice;
       const params = new URLSearchParams(paramsObj);
 
-      const response = await axiosInstance.get<CoursesResponse>(`/users/courses?${params}`);
+      const response = await axiosInstance.get<CoursesResponse>(`/api/users/courses?${params}`);
       setCourses(response.data.courses);
       setTotalPages(response.data.totalPages);
     } catch (error) {

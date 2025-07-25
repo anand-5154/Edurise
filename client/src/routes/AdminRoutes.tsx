@@ -28,13 +28,14 @@ const AdminRoutes = () => {
     <Routes>
       <Route path="/login" element={<AdminLogin />} />
       <Route
-        path="/"
+        path=""
         element={
           <ProtectedRoute>
             <AdminNavbar />
           </ProtectedRoute>
         }
       >
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="tutors" element={<AdminTutors />} />
@@ -48,7 +49,7 @@ const AdminRoutes = () => {
         <Route path="courses/:courseId/preview" element={<AdminCoursePreview />} />
         <Route path="reports/user-activity" element={<AdminUserActivityReport />} />
         <Route path="reports/course-performance" element={<AdminCoursePerformanceReport />} />
-        <Route path="/learning-paths" element={<AdminLearningPaths />} />
+        <Route path="learning-paths" element={<AdminLearningPaths />} />
       </Route>
     </Routes>
   );

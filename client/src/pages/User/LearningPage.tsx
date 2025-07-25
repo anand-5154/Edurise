@@ -17,6 +17,13 @@ interface Lecture {
   title: string;
   videoUrl: string;
   order: number;
+  description?: string;
+}
+
+interface CourseInfo {
+  _id: string;
+  title: string;
+  description?: string;
 }
 
 const LearningPage: React.FC = () => {
@@ -28,13 +35,27 @@ const LearningPage: React.FC = () => {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [completedLectures, setCompletedLectures] = useState<boolean[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCourseInfo = async () => {
+      if (!courseId) return;
+      try {
+        const res = await axiosInstance.get<CourseInfo>(`/api/users/courses/${courseId}`);
+        setCourseInfo(res.data);
+      } catch (err) {
+        setCourseInfo(null);
+      }
+    };
+    fetchCourseInfo();
+  }, [courseId]);
 
   useEffect(() => {
     const fetchModules = async () => {
       setIsLoading(true);
       try {
-        const res = await axiosInstance.get(`/users/courses/${courseId}/modules`);
+        const res = await axiosInstance.get<{ modules: Module[]; unlocked: boolean[]; completed: boolean[] }>(`/api/users/courses/${courseId}/modules`);
         setModules(res.data.modules);
         setUnlocked(res.data.unlocked);
         setCompletedModules(res.data.completed);
@@ -56,7 +77,7 @@ const LearningPage: React.FC = () => {
     setSelectedModule(module);
     setIsLoading(true);
     try {
-      const res = await axiosInstance.get(`/users/modules/${module._id}/lectures`);
+      const res = await axiosInstance.get<{ lectures: Lecture[]; completed: boolean[] }>(`/api/users/modules/${module._id}/lectures`);
       setLectures(res.data.lectures);
       setCompletedLectures(res.data.completed);
     } catch (err) {
@@ -70,7 +91,7 @@ const LearningPage: React.FC = () => {
   const handleMarkCompleted = async (lectureIdx: number) => {
     if (!selectedModule || !lectures[lectureIdx]) return;
     try {
-      await axiosInstance.post(`/users/modules/${selectedModule._id}/lectures/${lectures[lectureIdx]._id}/complete`);
+      await axiosInstance.post(`/api/users/modules/${selectedModule._id}/lectures/${lectures[lectureIdx]._id}/complete`);
       setCompletedLectures(prev => {
         const updated = [...prev];
         updated[lectureIdx] = true;
@@ -96,7 +117,10 @@ const LearningPage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           <div className="p-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Course Modules</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{courseInfo?.title || 'Course Modules'}</h1>
+            {courseInfo?.description && (
+              <p className="text-gray-600 mb-6 text-lg">{courseInfo.description}</p>
+            )}
             <div className="space-y-4">
               {modules.length === 0 && <p className="text-gray-600">No modules available for this course yet.</p>}
               {modules.map((module, idx) => (
@@ -116,7 +140,10 @@ const LearningPage: React.FC = () => {
 
             {selectedModule && (
               <div className="mt-8">
-                <h2 className="text-2xl font-bold mb-4">Lectures in {selectedModule.title}</h2>
+                <h2 className="text-2xl font-bold mb-2">Lectures in {selectedModule.title}</h2>
+                {selectedModule.description && (
+                  <p className="text-gray-600 mb-4 text-base">{selectedModule.description}</p>
+                )}
                 {lectures.length === 0 && <p className="text-gray-600">No lectures available for this module yet.</p>}
                 <div className="space-y-8">
                   {lectures.map((lecture, idx) => (
@@ -129,6 +156,9 @@ const LearningPage: React.FC = () => {
                           )}
                         </h3>
                         <VideoPlayer videoUrl={lecture.videoUrl} title={lecture.title} />
+                        {lecture.description && (
+                          <p className="mt-2 text-gray-600 text-base">{lecture.description}</p>
+                        )}
                       </div>
                       <div className="mt-4 md:mt-0 md:w-48 flex-shrink-0 flex flex-col items-end">
                         {completedLectures[idx] ? (

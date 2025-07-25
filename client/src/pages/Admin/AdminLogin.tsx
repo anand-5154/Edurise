@@ -4,6 +4,20 @@ import axiosInstance from '../../services/apiService';
 import { errorToast, successToast } from '../../components/Toast';
 import BeatLoader from "react-spinners/BeatLoader";
 
+// Backend error message constants
+const ERROR_MESSAGES: Record<string, string> = {
+  'Invalid credentials': 'Invalid email or password.',
+  'Invalid email format': 'Please enter a valid email address.',
+  'Your account has been blocked. Please contact support.': 'Your account has been blocked. Please contact support.',
+  'Your account has been rejected. Please contact support for more information.': 'Your account has been rejected. Please contact support for more information.',
+  'Your account is pending verification': 'Your account is pending verification.',
+  'Your account is not approved': 'Your account is not approved.',
+  'Authentication failed': 'Authentication failed. Please try again.',
+  'User not found': 'No admin account found with this email.',
+  'All fields are required': 'Please fill in all fields.',
+  'Internal server error': 'Internal server error. Please try again later.',
+};
+
 const AdminLogin = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -45,14 +59,18 @@ const AdminLogin = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.post('/admin/login', formData);
-      if (response.data.token) {
-        localStorage.setItem('adminAccessToken', response.data.token);
-        localStorage.setItem('adminRefreshToken', response.data.refreshToken);
+      const data: any = response.data;
+      console.log('Admin login response:', data);
+      if (data.accessToken && data.refreshToken) {
+        localStorage.setItem('adminAccessToken', data.accessToken);
+        localStorage.setItem('adminRefreshToken', data.refreshToken);
         successToast('Login successful');
-        navigate('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Login failed';
+      let errorMessage = error.response?.data?.message || 'Login failed';
+      // Map backend error to user-friendly message
+      errorMessage = ERROR_MESSAGES[errorMessage] || errorMessage;
       setFormError(errorMessage);
       errorToast(errorMessage);
     } finally {
