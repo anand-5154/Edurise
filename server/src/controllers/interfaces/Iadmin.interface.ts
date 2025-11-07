@@ -1,0 +1,36 @@
+import { Request,Response } from "express";
+
+export interface IAdminController{
+    login(req:Request,res:Response):Promise<void>,
+    blockUnblockUser(req:Request,res:Response):Promise<void>,
+    blockUnblockTutor(req:Request,res:Response):Promise<void>,
+    getDashboard(req:Request,res:Response):Promise<void>,
+    getAllUsers(req:Request,res:Response):Promise<void>,
+    getAllTutors(req:Request,res:Response):Promise<void>,
+    approveTutor(req:Request,res:Response):Promise<void>,
+    rejectTutor(req:Request,res:Response):Promise<void>,
+    addCategory(req:Request,res:Response):Promise<void>,
+    getCatgeories(req:Request,res:Response):Promise<void>,
+    deleteCategory(req:Request,res:Response):Promise<void>
+    restoreCategory(req:Request,res:Response):Promise<void>,
+    getCourses(req:Request,res:Response):Promise<void>,
+    softDeleteCourse(req:Request,res:Response):Promise<void>,
+    recoverCourse(req:Request,res:Response):Promise<void>,
+    getAllReviews(req:Request,res:Response):Promise<void>,
+    hideReview(req:Request,res:Response):Promise<void>,
+    unhideReview(req:Request,res:Response):Promise<void>,
+    deleteReview(req:Request,res:Response):Promise<void>,
+    getWallet(req:Request,res:Response):Promise<void>,
+    refreshToken(req:Request,res:Response):Promise<void>,
+    getComplaints(req:Request,res:Response):Promise<void>,
+    responseComplaint(req:Request,res:Response):Promise<void>,
+    getCourseStats(req:Request,res:Response):Promise<void>,
+    getIncomeStats(req:Request,res:Response):Promise<void>,
+    getSpecificCourseforAdmin(req:Request,res:Response):Promise<void>,
+    getNotifications(req:Request,res:Response):Promise<void>,
+    getSpecificTutor(req:Request,res:Response):Promise<void>,
+    markAsRead(req:Request,res:Response):Promise<void>,
+    logOut(req:Request,res:Response):Promise<void>,
+    getUserActivityReport(req:Request,res:Response):Promise<void>,
+    getCoursePerformanceReport(req:Request,res:Response):Promise<void>
+}

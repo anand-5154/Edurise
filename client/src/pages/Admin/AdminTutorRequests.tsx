@@ -1,84 +1,128 @@
 import { useState, useEffect } from "react";
-import axiosInstance from "../../services/apiService";
 import BeatLoader from "react-spinners/BeatLoader";
-
-interface Tutor {
-  name: string;
-  email: string;
-  username: string;
-  password: string;
-  phone: string;
-  title: string;
-  yearsOfExperience: number;
-  role: "user" | "admin" | "instructor";
-  education: string;
-  accountStatus: "pending" | "blocked" | "active";
-  isVerified: boolean;
-  _id: string;
-}
+import { errorToast } from "../../components/Toast";
+import type { Tutor } from "../../types/instructor.types";
+import {
+  getRequestsS,
+  handleAcceptS,
+  handleRejectS,
+} from "../../services/admin.services";
+import Pagination from "../../components/Pagination";
+import { useSearchParams } from "react-router-dom";
+import type { AxiosError } from "axios";
 
 const AdminTutorRequests = () => {
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<Tutor[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const pageParam = parseInt(searchParams.get("page") || "1");
+  const [currentPage, setCurrentPage] = useState<number>(pageParam);
+  const [selectedTutorResume, setSelectedTutorResume] = useState<string | null>(
+    null
+  );
+  const itemsPerPage = 5;
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [rejectingEmail, setRejectingEmail] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState<string>("");
 
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await axiosInstance.get<Tutor[]>("/admin/instructors");
-        const unverifiedTutors = res.data.filter(tutor => !tutor.isVerified);
-        setRequests(unverifiedTutors);
-      } catch (err) {
-        console.log(err);
+        const res = await getRequestsS(currentPage, itemsPerPage);
+        setRequests(res.tutors);
+        setTotalPages(res.totalPages);
+      } catch (err: unknown) {
+        const error = err as AxiosError<{ message: string }>;
+        errorToast(error.response?.data?.message ?? "Something went wrong");
       } finally {
         setLoading(false);
       }
     };
     fetchRequests();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
-  const handleAccept = async (instructorId: string) => {
+  useEffect(() => {
+    const pageParam = parseInt(searchParams.get("page") || "1");
+    setCurrentPage(pageParam);
+  }, [searchParams]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSearchParams({ page: page.toString() });
+  };
+
+  const handleAccept = async (email: string) => {
     try {
-      await axiosInstance.put(`/admin/instructors/${instructorId}/verify`);
-      setRequests(prev => prev.filter(t => t._id !== instructorId));
-    } catch (err) {
-      console.log(err);
+      await handleAcceptS(email);
+      setRequests((prev) => prev.filter((t) => t.email !== email));
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      errorToast(error.response?.data?.message ?? "Something went wrong");
     }
   };
 
-  const handleReject = async (instructorId: string) => {
+  const handleReject = async (email: string, reason: string) => {
     try {
-      await axiosInstance.put(`/admin/instructors/${instructorId}/reject`);
-      setRequests(prev => prev.filter(t => t._id !== instructorId));
+      await handleRejectS(email, reason);
+      setRequests((prev) => prev.filter((t) => t.email !== email));
+    } catch (err: unknown) {
+      console.log(err);
+      const error = err as AxiosError<{ message: string }>;
+      errorToast(error.response?.data?.message ?? "Something went wrong");
+    }
+  };
+
+  const confirmReject = async (email: string) => {
+    try {
+      await handleReject(email, rejectReason);
+      setRejectingEmail(null);
+      setRejectReason("");
     } catch (err) {
       console.log(err);
     }
   };
 
   const toggleDetails = (email: string) => {
-    setExpandedEmail(prev => (prev === email ? null : email));
+    setExpandedEmail((prev) => (prev === email ? null : email));
+  };
+
+  const openRejectModal = (email: string) => {
+    setRejectingEmail(email);
+    setRejectReason("");
   };
 
   return loading ? (
     <div className="flex justify-center items-center h-180">
-      <BeatLoader color="#2563eb" size={30} />
+      <BeatLoader color="#7e22ce" size={30} />
     </div>
   ) : (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Tutor Verification Requests</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          Tutor Verification Requests
+        </h2>
 
         {requests.length === 0 ? (
           <p className="text-gray-500">No pending tutor requests.</p>
         ) : (
           <div className="space-y-4">
-            {requests.map(tutor => (
-              <div key={tutor.email} className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            {requests.map((tutor) => (
+              <div
+                key={tutor.email}
+                className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
+              >
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{tutor.name}</h3>
-                    <p className="text-sm text-gray-600">Email: {tutor.email}</p>
-                    <p className="text-sm text-gray-600">Title: {tutor.title}</p>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {tutor.name}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Email: {tutor.email}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Title: {tutor.title}
+                    </p>
                   </div>
                   <button
                     onClick={() => toggleDetails(tutor.email)}
@@ -88,26 +132,47 @@ const AdminTutorRequests = () => {
                   </button>
                 </div>
 
-                {/* Expanded details */}
                 {expandedEmail === tutor.email && (
                   <div className="mt-4 border-t pt-4 space-y-1 text-sm text-gray-600">
-                    <p><strong>Username:</strong> {tutor.username}</p>
-                    <p><strong>Phone:</strong> {tutor.phone}</p>
-                    <p><strong>Experience:</strong> {tutor.yearsOfExperience} years</p>
-                    <p><strong>Education:</strong> {tutor.education}</p>
-                    <p><strong>Account Status:</strong> {tutor.accountStatus}</p>
-                    <p><strong>Role:</strong> {tutor.role}</p>
+                    <p>
+                      <strong>Username:</strong> {tutor.username}
+                    </p>
+                    <p>
+                      <strong>Phone:</strong> {tutor.phone}
+                    </p>
+                    <p>
+                      <strong>Experience:</strong> {tutor.yearsOfExperience}{" "}
+                      years
+                    </p>
+                    <p>
+                      <strong>Education:</strong> {tutor.education}
+                    </p>
+                    <p>
+                      <strong>Account Status:</strong> {tutor.accountStatus}
+                    </p>
+                    <p>
+                      <strong>Role:</strong> {tutor.role}
+                    </p>
+                    <p>
+                      <strong>Resume:</strong>
+                      <button
+                        onClick={() => setSelectedTutorResume(tutor.resume)}
+                        className="text-blue-600 underline ml-1"
+                      >
+                        View Resume
+                      </button>
+                    </p>
 
                     <div className="flex gap-4 mt-4">
                       <button
-                        onClick={() => handleAccept(tutor._id)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        onClick={() => handleAccept(tutor.email)}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                       >
                         Approve
                       </button>
                       <button
-                        onClick={() => handleReject(tutor._id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        onClick={() => openRejectModal(tutor.email)}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                       >
                         Reject
                       </button>
@@ -118,7 +183,75 @@ const AdminTutorRequests = () => {
             ))}
           </div>
         )}
+        <Pagination
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          totalPages={totalPages}
+        />
       </div>
+
+      {rejectingEmail && (
+        <div className="fixed inset-0 bg-gray-900/40 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              Reject Tutor
+            </h2>
+
+            <label className="block text-gray-700 mb-2">
+              Reason for rejection:
+            </label>
+
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.repeat) e.preventDefault();
+              }}
+              className="w-full border border-gray-300 rounded p-2 text-sm"
+              rows={3}
+              placeholder="Enter a brief reason..."
+            ></textarea>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => confirmReject(rejectingEmail)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Send
+              </button>
+              <button
+                onClick={() => {
+                  setRejectingEmail(null);
+                  setRejectReason("");
+                }}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedTutorResume && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-11/12 md:w-3/4 h-[80vh] relative overflow-hidden">
+            <button
+              onClick={() => setSelectedTutorResume(null)}
+              className="absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 rounded-full px-2 py-1 text-sm z-10"
+            >
+              ✕
+            </button>
+
+            <div className="w-full h-full overflow-auto p-4">
+              <img
+                src={selectedTutorResume}
+                alt="Tutor Resume"
+                className="w-full h-auto object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,0 +1,36 @@
+import LiveSession from "../../models/implementations/liveSessionModel";
+import { ILiveSession } from "../../models/interfaces/Ilivesession.interface";
+import { ILiveSessionRepository } from "../interfaces/Ilivesession.interface";
+
+export class LiveSessionRepository implements ILiveSessionRepository {
+  async create(data: Partial<ILiveSession>): Promise<ILiveSession | null> {
+    try {
+      return await LiveSession.create(data);
+    } catch (err) {
+      console.error("LiveSession create error:", err);
+      throw err;
+    }
+  }
+
+  async findById(id: string): Promise<ILiveSession | null> {
+    return await LiveSession.findById(id);
+  }
+
+  async findActiveByCourseId(courseId: string): Promise<ILiveSession | null> {
+    return await LiveSession.findOne({
+      courseId,
+      endTime: { $exists: false },
+    });
+  }
+
+  async endSession(
+    isLive: boolean,
+    sessionId: string
+  ): Promise<ILiveSession | null> {
+    return await LiveSession.findByIdAndUpdate(
+      sessionId,
+      { isLive: isLive, endTime: new Date() },
+      { new: true }
+    );
+  }
+}

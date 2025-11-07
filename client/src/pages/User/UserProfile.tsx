@@ -1,455 +1,156 @@
-import React, { useState, useEffect } from 'react';
-import { User, Camera, Save, Edit, X } from 'lucide-react';
-import apiService from '../../services/apiService';
-import { toast } from 'react-toastify';
+import { useState, useContext, useEffect } from "react";
+import UserContext from "../../context/UserContext";
+import { Mail, User, Phone } from "lucide-react";
+import { errorToast } from "../../components/Toast";
+import { editProfileS } from "../../services/user.services";
+import ReportForm from "../../components/ReportForm";
+import PurchaseHistory from "./CoursePurchaseHistory";
+import PurchasedCourses from "./PurchasedCourses";
+import ChangePassword from "./ChangePassword";
+import Navbar from "../../components/Navbar";
+import UserCertificates from "./Certificates";
+import { useLocation } from "react-router-dom";
+import type { AxiosError } from "axios";
 
-interface UserData {
-  _id: string;
-  name: string;
-  username: string;
-  email: string;
-  phone: string;
-  profilePicture?: string;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
-  googleId?: string;
-}
-
-const UserProfile: React.FC = () => {
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [editedData, setEditedData] = useState<Partial<UserData>>({});
+const UserProfile = () => {
+  const context = useContext(UserContext);
+  const { user, setUser } = context || {};
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || "Profile");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [formData, setFormData] = useState({ name: user?.name || "", phone: user?.phone || "" });
+
+  const tabs = ["Profile", "Course History", "My Courses", "Certificates", ...(user?.googleId ? [] : ["Change Password"])];
 
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    if (user) setFormData({ name: user.name, phone: user.phone });
+  }, [user]);
 
-  const fetchUserProfile = async () => {
-    try {
-      const response = await apiService.get('/api/users/profile');
-      setUserData(response.data);
-      setEditedData(response.data);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      toast.error('Failed to load profile data');
-      setIsLoading(false);
+  const validateForm = () => {
+    if (formData.name.length > 20) {
+      errorToast("Name cannot exceed 20 characters");
+      return false;
     }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditedData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('File size should be less than 5MB');
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+    if (!/^\d{10}$/.test(formData.phone)) {
+      errorToast("Phone number must be exactly 10 digits");
+      return false;
     }
+    return true;
   };
 
-  const uploadProfilePicture = async () => {
-    if (!selectedFile) return null;
-
-    try {
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append('profilePicture', selectedFile);
-
-      const response = await apiService.post('/api/users/upload-profile-picture', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      return response.data.profilePicture;
-    } catch (error) {
-      console.error('Error uploading profile picture:', error);
-      toast.error('Failed to upload profile picture');
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const isFormValid = () => formData.name.trim() !== "";
 
   const handleSave = async () => {
+    if (!validateForm()) return;
+    setIsLoading(true);
     try {
-      setIsSaving(true);
-      
-      let profilePictureUrl = editedData.profilePicture;
-      
-      // Upload new profile picture if selected
-      if (selectedFile) {
-        const uploadedUrl = await uploadProfilePicture();
-        if (uploadedUrl) {
-          profilePictureUrl = uploadedUrl;
-        } else {
-          return; // Don't proceed if upload failed
-        }
-      }
-
-      const updateData = {
-        ...editedData,
-        profilePicture: profilePictureUrl
-      };
-
-      const response = await apiService.put('/api/users/profile', updateData);
-      
-      setUserData(response.data);
-      setEditedData(response.data);
+      const formPayload = new FormData();
+      formPayload.append("name", formData.name);
+      formPayload.append("phone", formData.phone);
+      if (selectedFile) formPayload.append("profilePicture", selectedFile);
+      const res = await editProfileS(formPayload);
+      setUser?.(res.data);
       setIsEditing(false);
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      
-      toast.success('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ message: string }>;
+      errorToast(error.response?.data?.message ?? "Something went wrong");
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
-    setEditedData(userData || {});
+    if (!user) return;
+    setFormData({ name: user.name, phone: user.phone });
     setIsEditing(false);
-    setSelectedFile(null);
-    setPreviewUrl(null);
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match');
-      return;
-    }
-    if (!currentPassword || !newPassword) {
-      toast.error('Please fill all password fields');
-      return;
-    }
-    setIsChangingPassword(true);
-    try {
-      await apiService.put('/api/users/change-password', {
-        currentPassword,
-        newPassword,
-      });
-      toast.success('Password changed successfully!');
-      setShowChangePassword(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Failed to change password');
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!userData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Profile Not Found</h2>
-          <p className="text-gray-600">Unable to load user profile</p>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return <div className="text-center pt-24">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          <p className="text-gray-600 mt-2">Manage your account information and settings</p>
+    <div className="theme-light min-h-screen bg-[var(--bg)] text-[var(--text-800)]">
+      <Navbar />
+      <div className="container pt-20">
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          {tabs.map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-full text-sm font-medium ${activeTab === tab ? "btn btn-ghost" : "ring-1 ring-[var(--stroke-200)]"}`}>
+              {tab}
+            </button>
+          ))}
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          {/* Profile Picture Section */}
-          <div className="p-8 border-b border-gray-200">
-            <div className="flex items-center space-x-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                  {previewUrl ? (
-                    <img 
-                      src={previewUrl} 
-                      alt="Profile preview" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : userData.profilePicture ? (
-                    <img 
-                      src={userData.profilePicture} 
-                      alt="Profile" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-12 h-12 text-gray-400" />
+        <div className="card p-6">
+          {activeTab === "Profile" && (
+            <div>
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative w-24 h-24">
+                  <img src={user.profilePicture} alt="Profile" className="w-24 h-24 rounded-full object-cover ring-2 ring-[var(--primary-200)]" />
+                  {isEditing && (
+                    <>
+                      <label htmlFor="profile-upload" className="absolute inset-0 rounded-full bg-black/30 grid place-items-center text-white cursor-pointer">+</label>
+                      <input type="file" id="profile-upload" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="hidden" />
+                    </>
                   )}
                 </div>
-                
-                {isEditing && (
-                  <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
-                    <Camera className="w-4 h-4" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
-              
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {isEditing ? editedData.name : userData.name}
-                </h2>
-                <p className="text-gray-600">{userData.email}</p>
-                <p className="text-sm text-gray-500 capitalize">{userData.role}</p>
-              </div>
-
-              <div className="flex space-x-3">
-                {!isEditing ? (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>Edit Profile</span>
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving || isUploading}
-                      className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                    >
-                      {isSaving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>Cancel</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Profile Information */}
-          <div className="p-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="name"
-                    value={editedData.name || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your full name"
-                  />
-                ) : (
-                  <p className="text-gray-900">{userData.name}</p>
-                )}
-              </div>
-
-              {/* Username */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Username
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="username"
-                    value={editedData.username || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter username"
-                  />
-                ) : (
-                  <p className="text-gray-900">{userData.username || 'Not set'}</p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <p className="text-gray-900">{userData.email}</p>
-                <p className="text-sm text-gray-500">Email cannot be changed</p>
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={editedData.phone || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter phone number"
-                  />
-                ) : (
-                  <p className="text-gray-900">{userData.phone || 'Not provided'}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Account Information */}
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Account Information</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Account Type
-                  </label>
-                  <p className="text-gray-900 capitalize">{userData.role}</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Member Since
-                  </label>
-                  <p className="text-gray-900">
-                    {new Date(userData.createdAt).toLocaleDateString()}
-                  </p>
+                <h2 className="mt-3 text-xl font-semibold">{user.name}</h2>
+                <p className="text-[color:var(--text-600)]">@{user.username}</p>
+                <div className="mt-3 w-full max-w-md">
+                  <ReportForm type="complaint" />
                 </div>
               </div>
+
+              <div className="text-center mb-6">
+                <button onClick={() => setIsEditing(!isEditing)} className="btn btn-primary">{isEditing ? "Cancel" : "Edit Profile"}</button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-2 mb-1"><Mail className="w-4 h-4" /> Email</label>
+                  <p className="bg-[var(--bg-soft)] px-3 py-2 radius-md">{user.email}</p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-2 mb-1"><User className="w-4 h-4" /> Username</label>
+                  <p className="bg-[var(--bg-soft)] px-3 py-2 radius-md">{user.username}</p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1">Full Name</label>
+                  {isEditing ? (
+                    <input name="name" value={formData.name} onChange={handleInputChange} />
+                  ) : (
+                    <p className="bg-[var(--bg-soft)] px-3 py-2 radius-md">{user.name}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-2 mb-1"><Phone className="w-4 h-4" /> Phone</label>
+                  {isEditing ? (
+                    <input name="phone" value={formData.phone} onChange={handleInputChange} />
+                  ) : (
+                    <p className="bg-[var(--bg-soft)] px-3 py-2 radius-md">{user.phone}</p>
+                  )}
+                </div>
+              </div>
+
+              {isEditing && (
+                <div className="flex gap-4 mt-6">
+                  <button onClick={handleSave} disabled={isLoading || !isFormValid()} className="btn btn-primary flex-1">{isLoading ? "Saving..." : "Save Changes"}</button>
+                  <button onClick={handleCancel} className="btn btn-ghost flex-1">Cancel</button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          {activeTab === "Course History" && <PurchaseHistory />}
+          {activeTab === "My Courses" && <PurchasedCourses />}
+          {activeTab === "Change Password" && <ChangePassword />}
+          {activeTab === "Certificates" && <UserCertificates />}
         </div>
-
-        {/* Change Password Section */}
-        {userData && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-8 p-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
-            {userData.googleId && (
-              <div className="mb-4 text-blue-700 bg-blue-50 border border-blue-200 rounded p-3 text-sm">
-                Setting a password will allow you to log in with email and password in addition to Google.
-              </div>
-            )}
-            {!showChangePassword ? (
-              <button
-                onClick={() => setShowChangePassword(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Change Password
-              </button>
-            ) : (
-              <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={e => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    type="submit"
-                    disabled={isChangingPassword}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                  >
-                    {isChangingPassword ? 'Changing...' : 'Change Password'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowChangePassword(false);
-                      setCurrentPassword('');
-                      setNewPassword('');
-                      setConfirmPassword('');
-                    }}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

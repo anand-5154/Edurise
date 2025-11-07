@@ -1,26 +1,106 @@
-import { IMessageRepository } from '../interfaces/message.interface';
-import Message, { IMessage } from '../../models/implementations/messageModel';
-import { BaseRepository } from './base.repository';
+import Message from "../../models/implementations/messageModel";
+import { IMessage } from "../../models/interfaces/chat.interface";
+import { IMessageRepository } from "../interfaces/Imessage.interface";
+import Chat from "../../models/implementations/chatModel";
+import { UpdateResult } from "mongodb";
+import mongoose from "mongoose";
 
-export class MessageRepository extends BaseRepository<IMessage> implements IMessageRepository {
-  constructor() {
-    super(Message);
+export class MessageRepository implements IMessageRepository {
+  async saveMessage(messageData: Partial<IMessage>): Promise<IMessage | null> {
+    const withReadBy = {
+      ...messageData,
+      readBy: [
+        {
+          readerId: messageData.senderId,
+          readerModel:
+            messageData.senderRole === "user" ? "User" : "Instructor",
+        },
+      ],
+    };
+
+    const message = await Message.create(withReadBy);
+
+    await Chat.findByIdAndUpdate(messageData.chat, {
+      lastMessage: new Date(),
+      lastMessageContent: message.content,
+    });
+
+    console.log(message)
+
+    return message;
   }
 
-  async findByInstructor(instructorId: string, limit = 2): Promise<IMessage[]> {
-    return this.model.find({ instructor: instructorId })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .populate({
-        path: 'student',
-        select: 'name',
-        model: 'User',
-        options: { lean: true }
-      })
-      .lean();
+  async getChatMessages(chatId: string): Promise<IMessage[] | null> {
+    return await Message.find({ chat: chatId }).sort({ createdAt: 1 });
   }
 
-  async countByInstructor(instructorId: string): Promise<number> {
-    return this.model.countDocuments({ instructor: instructorId });
+  async markMessagesAsRead(
+    chatId: string,
+    userId: string,
+    userModel: "User" | "Instructor"
+  ): Promise<UpdateResult> {
+    return await Message.updateMany(
+      {
+        chat: chatId,
+        "readBy.readerId": { $ne: userId },
+      },
+      {
+        $push: { readBy: { readerId: userId, readerModel: userModel } },
+      }
+    );
   }
-} 
+
+  async deleteMessage(messageId: string): Promise<IMessage | null> {
+    return await Message.findByIdAndUpdate(
+      messageId,
+      { isDeleted: true,},
+      { new: true }
+    );
+  }
+
+  async getUnreadCounts(
+    userId: string,
+    userModel: "User" | "Instructor"
+  ): Promise<{ chat: string; count: number }[]> {
+    const objectId = new mongoose.Types.ObjectId(userId);
+
+    const messages = await Message.aggregate([
+      {
+        $match: {
+          "readBy.readerId": { $ne: objectId },
+          senderId: { $ne: objectId },
+        },
+      },
+      {
+        $group: {
+          _id: "$chat",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "chats",
+          localField: "_id",
+          foreignField: "_id",
+          as: "chatData",
+        },
+      },
+      { $unwind: "$chatData" },
+      {
+        $match:
+          userModel === "User"
+            ? { "chatData.user": objectId }
+            : { "chatData.instructor": objectId },
+      },
+      {
+        $project: {
+          chat: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    return messages;
+  }
+}

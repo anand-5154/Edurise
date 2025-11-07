@@ -1,0 +1,42 @@
+import {Request,Response} from "express"
+
+export interface IAuthController{
+    signup(req:Request,res:Response):Promise<void>,
+    signin(req:Request,res:Response):Promise<void>,
+    verifyOtp(req:Request,res:Response):Promise<void>,
+    verifyGoogle(req:Request,res:Response):Promise<void>
+    forgotPassword(req:Request,res:Response):Promise<void>,
+    verifyForgotOtp(req:Request,res:Response):Promise<void>,
+    resetPassword(req:Request,res:Response):Promise<void>,
+    resentOtp(req:Request,res:Response):Promise<void>,
+    getProfile(req:Request,res:Response):Promise<void>,
+    updateProfile(req:Request,res:Response):Promise<void>,
+    getCourses(req:Request,res:Response):Promise<void>,
+    findCourseById(req:Request,res:Response):Promise<void>,
+    buyCourse(req:Request,res:Response):Promise<void>,
+    cancelOrder(req:Request,res:Response):Promise<void>,
+    verifyOrder(req:Request,res:Response):Promise<void>,
+    retryPayment(req:Request,res:Response):Promise<void>,
+    getPreviousOrder(req:Request,res:Response):Promise<void>,
+    markLectureWatched(req:Request,res:Response):Promise<void>,
+    getCourseProgress(req:Request,res:Response):Promise<void>,
+    refreshToken(req:Request,res:Response):Promise<void>,
+    submitComplaint(req:Request,res:Response):Promise<void>,
+    checkStatus(req:Request,res:Response):Promise<void>,
+    getNotifications(req:Request,res:Response):Promise<void>,
+    markAsRead(req:Request,res:Response):Promise<void>,
+    getPurchases(req:Request,res:Response):Promise<void>,
+    changePassword(req:Request,res:Response):Promise<void>,
+    courseInstructorView(req:Request,res:Response):Promise<void>,
+    purchasedCourses(req:Request,res:Response):Promise<void>,
+    getCertificates(req:Request,res:Response):Promise<void>,
+    getCategory(req:Request,res:Response):Promise<void>,
+    getUnreadCounts(req: Request, res: Response):Promise<void>,
+    markRead(req: Request, res: Response):Promise<void>
+    getQuiz(req: Request, res: Response):Promise<void>
+    submitQuiz(req: Request, res: Response):Promise<void>
+    createCertificate(req: Request, res: Response):Promise<void>
+    getSessionToken(req: Request, res: Response): Promise<void>
+    getLiveSessionByCourseId(req: Request, res: Response): Promise<void>
+    logOut(req:Request,res:Response):Promise<void>
+}

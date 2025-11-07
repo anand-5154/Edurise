@@ -1,16 +1,30 @@
-import express from 'express';
-import { CourseController } from '../controllers/implementations/course.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { Router } from "express";
+import multer from "multer";
+import authRole from "../middlewares/authRole";
+import { courseController } from "../dependencyHandlers/course.dependencyhandler";
 
-const router = express.Router();
-const courseController = new CourseController(/* inject course service */);
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
-// Create course
-router.post('/', authMiddleware, courseController.createCourse.bind(courseController));
+const router = Router();
 
-// Update course
-router.put('/:id', authMiddleware, courseController.updateCourse.bind(courseController));
+router.post(
+  "/",
+  authRole(["instructor"]),
+  upload.fields([
+    { name: "lessonFiles", maxCount: 50 },
+    { name: "thumbnail", maxCount: 1 },
+  ]),
+  courseController.createCourse.bind(courseController)
+);
+router.put(
+  "/editcourse/:courseId",
+  authRole(["instructor"]),
+  upload.fields([
+    { name: "lectureFiles", maxCount: 50 },
+    { name: "thumbnail", maxCount: 1 },
+  ]),
+  courseController.updateCourse.bind(courseController)
+);
 
-// ... rest of the routes ...
-
-export default router; 
+export default router;

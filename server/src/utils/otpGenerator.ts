@@ -7,8 +7,7 @@ export default function generateOtp(){
         upperCaseAlphabets:false,
         specialChars:false
     })
-    console.log('Generated OTP:', otp)
     return otp
 }
 
-export const otpExpiry=new Date(Date.now()+10*60*1000)
+export const otpExpiry=new Date(Date.now()+5*60*1000)

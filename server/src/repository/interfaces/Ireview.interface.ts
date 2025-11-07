@@ -1,0 +1,37 @@
+import { IReview } from "../../models/interfaces/Ireview.interface";
+
+export interface IReviewRepository {
+  createReview(
+    courseId: string,
+    userId: string,
+    rating: number,
+    text: string
+  ): Promise<IReview>;
+
+  getCourseReviews(courseId: string): Promise<IReview[]>;
+
+  hasUserReviewed(courseId: string, userId: string): Promise<IReview | null>;
+
+  getAverageRating(courseId: string): Promise<number>;
+
+  getReviewsByInstructor(
+    instructorId: string,
+    page: number,
+    limit: number,
+    rating: number
+  ): Promise<{ reviews: IReview[]; total: number; totalPages: number }>;
+
+  getAllReviews(
+    page: number,
+    limit: number,
+    search: string,
+    rating: number|null,
+    sort: string
+  ): Promise<{ reviews: IReview[]; total: number; totalPages: number }>;
+
+  findReviewAndHide(id: string): Promise<IReview | null>;
+
+  findReviewAndUnhide(id: string): Promise<IReview | null>;
+
+  deleteReview(id: string): Promise<IReview | null>;
+}

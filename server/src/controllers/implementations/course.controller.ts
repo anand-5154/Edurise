@@ -1,32 +1,162 @@
-import { Request, Response } from 'express';
-import { ICourseManagementService } from '../../services/interfaces/course-management.interface';
-import { httpStatus } from '../../constants/statusCodes';
-import { messages } from '../../constants/messages';
+import { Request, Response } from "express";
+import { ICourseService } from "../../services/interfaces/course.services";
+import { httpStatus } from "../../constants/statusCodes";
+import { ICourseController } from "../interfaces/Icourse.interfaces";
+import { LectureFileWithMeta } from "../../services/implementation/Icourse.services";
+import {
+  IChapter,
+  IModule,
+  UpdateCourseInput,
+} from "../../models/interfaces/Icourse.interface";
 
-export class CourseController {
-    constructor(private _courseService: ICourseManagementService) {}
+export class CourseController implements ICourseController {
+  constructor(private _courseService: ICourseService) {}
 
-    async createCourse(req: Request, res: Response) {
-        try {
-            const course = await this._courseService.createCourse(req.body);
-            res.status(httpStatus.CREATED).json(course);
-        } catch (error: any) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_CREATE_COURSE });
-        }
+  async createCourse(
+    req: Request & {
+      files?: {
+        lessonFiles?: Express.Multer.File[];
+        thumbnail?: Express.Multer.File[];
+      };
+      instructor?: { id: string };
+    },
+    res: Response
+  ): Promise<void> {
+    try {
+      const instructorId = req.instructor?.id;
+      const thumbnailFile = req.files?.thumbnail?.[0];
+      const lessonFiles = req.files?.lessonFiles || [];
+
+      if (!instructorId) {
+        res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ message: "Missing instructor" });
+        return;
+      }
+
+      if (!thumbnailFile) {
+        res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ message: "Thumbnail is required" });
+        return;
+      }
+
+      const modules = JSON.parse(req.body.modules);
+
+      const lessonMeta = Array.isArray(req.body.lessonMeta)
+        ? req.body.lessonMeta.map((m: string) => JSON.parse(m))
+        : [JSON.parse(req.body.lessonMeta)];
+
+      const courseData = {
+        ...req.body,
+        instructorId,
+        modules,
+        lessonFiles,
+        lessonMeta,
+        thumbnail: thumbnailFile,
+      };
+
+      const course = await this._courseService.createCourse(courseData);
+      res.status(httpStatus.CREATED).json(course);
+    } catch (err: unknown) {
+      console.error("Error creating course:", err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
     }
+  }
 
-    async updateCourse(req: Request, res: Response) {
-        try {
-            const { id } = req.params;
-            const course = await this._courseService.updateCourse(id, req.body);
-            if (!course) {
-                return res.status(httpStatus.NOT_FOUND).json({ message: messages.COURSE_NOT_FOUND });
-            }
-            res.json(course);
-        } catch (error: any) {
-            res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: messages.FAILED_TO_UPDATE_COURSE });
-        }
+  async updateCourse(
+    req: Request & {
+      files?: {
+        lectureFiles?: Express.Multer.File[];
+        thumbnail?: Express.Multer.File[];
+      };
+      instructor?: { id: string };
+    },
+    res: Response
+  ): Promise<void> {
+    try {
+      const { courseId } = req.params;
+
+      let modulesRaw: IModule[] = [];
+      if (req.body.modules) {
+        modulesRaw =
+          typeof req.body.modules === "string"
+            ? JSON.parse(req.body.modules)
+            : req.body.modules;
+      }
+
+      const lectureMeta = req.body.lectureMeta
+        ? Array.isArray(req.body.lectureMeta)
+          ? req.body.lectureMeta.map((m: string) => JSON.parse(m))
+          : [JSON.parse(req.body.lectureMeta as string)]
+        : [];
+
+      const lectureFiles = req.files?.lectureFiles || [];
+      const thumbnailFile = req.files?.thumbnail?.[0];
+
+      const lectureFilesWithMeta: LectureFileWithMeta[] = lectureFiles.map(
+        (file, i) => ({
+          file,
+          meta: lectureMeta[i],
+        })
+      );
+
+      const updateData: UpdateCourseInput & {
+        lectureFiles?: LectureFileWithMeta[];
+      } = {
+        title: req.body.title,
+        description: req.body.description,
+        category: req.body.category,
+        price: req.body.price,
+        isActive: req.body.isActive,
+        modules: modulesRaw.map((mod: IModule) => ({
+          _id: mod._id,
+          title: mod.title,
+          description: mod.description,
+          chapters: (mod.chapters || []).map((ch: IChapter) => ({
+            _id: ch._id,
+            title: ch.title,
+            description: ch.description,
+            existingLectures: (ch.lectures || []).filter(
+              (lec: {
+                _id?: string;
+                title: string;
+                description: string;
+                duration: string;
+                type: "video" | "pdf";
+                url?: string;
+              }) => lec._id
+            ),
+            newLectures: (ch.lectures || []).filter(
+              (lec: {
+                _id?: string;
+                title: string;
+                description: string;
+                duration: string;
+                type: "video" | "pdf";
+                url?: string;
+              }) => !lec._id
+            ),
+          })),
+        })),
+        lectureFiles: lectureFilesWithMeta,
+        thumbnail: thumbnailFile,
+      };
+
+      const updatedCourse = await this._courseService.updateCourse(
+        courseId,
+        updateData
+      );
+      res.status(httpStatus.OK).json(updatedCourse);
+    } catch (err: unknown) {
+      console.error(err);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        message: err instanceof Error ? err.message : "Something went wrong",
+      });
     }
+  }
+}
 
-    // ... rest of the controller methods ...
-} 
+export default CourseController;

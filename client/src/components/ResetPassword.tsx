@@ -1,88 +1,148 @@
-import React, { useState } from "react";
-import axiosInstance from "../services/apiService";
-import { successToast, errorToast } from "./Toast";
+import React, { useEffect, useState } from "react";
+import { successToast } from "./Toast";
 import { useNavigate } from "react-router-dom";
+import { instructorResetPassword } from "../services/instructor.services";
+import { userResetPassword } from "../services/user.services";
 
 interface OtpPageProps {
-  role: "users" | "instructors",
+  role: "users" | "instructors";
 }
 
-const ResetPassword: React.FC<OtpPageProps> = ({role}) => {
+const ResetPassword: React.FC<OtpPageProps> = ({ role }) => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const usertoken = localStorage.getItem("usersToken");
+  const instructortoken = localStorage.getItem("instructorsToken");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async(e: React.FormEvent) => {
+  useEffect(() => {
+    if (usertoken) navigate("/");
+    if (instructortoken) navigate("/instructors/dashboard");
+  }, [usertoken, instructortoken, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+
+    if (!newPassword.trim()) {
+      setError("New Password cannot be empty");
       return;
     }
-    
-    setError("");
-    setIsLoading(true);
-    try {
-      const email = localStorage.getItem("email");
-      if (!email) {
-        throw new Error("Email not found. Please try the forgot password process again.");
+
+    if (newPassword.length < 6) {
+      setError("New password must be at least 6 characters");
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      setError("Password must contain at least one uppercase letter");
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      setError("Password must contain at least one lowercase letter");
+      return;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      setError("Password must contain at least one special character");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return
+    } else {
+      setError("");
+      try {
+        const email = localStorage.getItem("email");
+        if (role === "users") {
+          const response = await userResetPassword(
+            email!,
+            newPassword,
+            confirmPassword
+          );
+          if (response && response.status === 200) {
+            successToast((response.data as { message: string }).message);
+            localStorage.removeItem("email");
+            navigate(`/users/login`);
+          }
+        } else if (role === "instructors") {
+          const response = await instructorResetPassword(
+            email!,
+            newPassword,
+            confirmPassword
+          );
+          if (response && response.status === 200) {
+            successToast((response.data as { message: string }).message);
+            localStorage.removeItem("email");
+            navigate(`/instructors/login`);
+          }
+        }
+      } catch (err) {
+        console.log(err);
+        setError("Something went wrong. Please try again later.");
       }
-      
-      const response = await axiosInstance.put(`/${role}/resetpassword`, {
-        email,
-        newPassword,
-        confirmPassword
-      });
-      
-      if (response && response.status === 200) {
-        successToast((response.data as { message: string }).message);
-        localStorage.removeItem("email");
-        navigate(`/${role}/login`);
-      }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Something went wrong. Please try again later.';
-      setError(errorMessage);
-      errorToast(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Reset Password</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-700 mb-1">New Password</label>
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <div className="w-full max-w-md bg-white text-gray-900 rounded-lg shadow-lg border border-gray-200 p-8">
+        <h2 className="text-3xl font-semibold text-center mb-6">
+          Reset Password
+        </h2>
+
+        {error && (
+          <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label
+              htmlFor="newPassword"
+              className="block text-sm font-medium mb-1 text-gray-700"
+            >
+              New Password
+            </label>
             <input
               type="password"
+              id="newPassword"
               value={newPassword}
+              onKeyDown={(e) => {
+                if (e.repeat) e.preventDefault();
+              }}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
               required
-              minLength={6}
+              className="w-full px-4 py-3 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <div>
-            <label className="block text-gray-700 mb-1">Confirm New Password</label>
+
+          <div className="mb-6">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium mb-1 text-gray-700"
+            >
+              Confirm Password
+            </label>
             <input
               type="password"
+              id="confirmPassword"
               value={confirmPassword}
+              onKeyDown={(e) => {
+                if (e.repeat) e.preventDefault();
+              }}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
               required
-              minLength={6}
+              className="w-full px-4 py-3 rounded-lg bg-white text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 hover:bg-blue-700 transition-colors py-3 rounded-lg font-semibold text-white"
           >
-            {isLoading ? "Resetting Password..." : "Reset Password"}
+            Submit
           </button>
         </form>
       </div>

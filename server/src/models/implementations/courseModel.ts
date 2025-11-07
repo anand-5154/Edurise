@@ -1,93 +1,90 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from "mongoose";
+import { ICourse, IModule } from "../interfaces/Icourse.interface";
 
-export interface ILecture {
-  title: string;
-  videoUrl: string;
-  description: string;
-}
-
-export interface IModule {
-  title: string;
-  lectures: ILecture[];
-}
-
-export interface ICourse extends Document {
-  title: string;
-  description: string;
-  instructor: mongoose.Types.ObjectId;
-  price: number;
-  category: mongoose.Types.ObjectId;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  duration: number; // in hours
-  thumbnail: string;
-  demoVideo: string;
-  isPublished: boolean;
-  modules: IModule[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const lectureSchema = new Schema<ILecture>({
-  title: { type: String, required: true },
-  videoUrl: { type: String, required: true },
-  description: { type: String, required: true }
-}, { _id: true }); // ensure _id is present
-
-const moduleSchema = new Schema<IModule>({
-  title: { type: String, required: true },
-  lectures: [lectureSchema]
-}, { _id: true }); // ensure _id is present
-
-const courseSchema = new Schema<ICourse>({
+const LectureSchema = new Schema({
   title: {
     type: String,
     required: true,
-    trim: true
   },
   description: {
     type: String,
-    required: true
-  },
-  instructor: {
-    type: Schema.Types.ObjectId,
-    ref: 'Instructor',
-    required: true
-  },
-  price: {
-    type: Number,
     required: true,
-    min: 0
   },
-  category: {
-    type: Schema.Types.ObjectId,
-    ref: 'Category',
-    required: true
-  },
-  level: {
+  url: {
     type: String,
-    enum: ['beginner', 'intermediate', 'advanced'],
-    required: true
+    required: true,
   },
   duration: {
-    type: Number,
+    type: String,
     required: true,
-    min: 0
   },
-  thumbnail: {
+  order: {
+    type: Number,
+  },
+  type: {
     type: String,
-    required: true
   },
-  demoVideo: {
-    type: String,
-    required: false
-  },
-  isPublished: {
-    type: Boolean,
-    default: false
-  },
-  modules: [moduleSchema]
-}, {
-  timestamps: true
 });
 
-export default mongoose.model<ICourse>('Course', courseSchema); 
+const chapterSchema = new Schema({
+    title: {
+        type: String,
+        required: true,
+    },
+    description: {
+        type: String,
+    },
+    lectures: [LectureSchema],
+});
+
+
+const moduleSchema = new Schema<IModule>({
+  title: { type: String, required: true },
+  description: { type: String },
+  chapters: [chapterSchema],
+});
+
+
+const courseSchema = new Schema<ICourse>(
+  {
+    title: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    category: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    thumbnail: { type: String },
+    modules: [moduleSchema],
+    instructor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Instructor",
+      required: false,
+    },
+    enrolledStudents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: [],
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export default mongoose.model<ICourse>("Course", courseSchema);

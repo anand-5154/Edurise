@@ -1,236 +1,206 @@
-import { ICourseRepository, GetCoursesParams } from '../interfaces/ICourseRepository-interface';
-import { ICourse } from '../../models/interfaces/ICourse-interface';
-import { GetAllCoursesParams, GetAllCoursesResult } from '../../services/interfaces/IUserService-interface';
-import Course from '../../models/implementations/courseModel';
-import Enrollment from '../../models/implementations/enrollmentModel';
-import { BaseRepository } from './base.repository';
+import { ICourse } from "../../models/interfaces/Icourse.interface";
+import { ICourseRepository } from "../interfaces/Icourse.interface";
+import Course from "../../models/implementations/courseModel";
+import { BaseRepository } from "../base.repository";
+import { FilterQuery, Types } from "mongoose";
 
-export class CourseRepository extends BaseRepository<ICourse> implements ICourseRepository {
+export class CourseRepository
+  extends BaseRepository<ICourse>
+  implements ICourseRepository
+{
   constructor() {
     super(Course);
   }
-
   async createCourse(courseData: Partial<ICourse>): Promise<ICourse> {
-    return this.create(courseData);
+    const course = await this.model.create(courseData);
+    return course;
   }
 
-  async getCourseById(courseId: string): Promise<ICourse | null> {
-    return this.model.findById(courseId)
-      .populate('instructor', 'name email')
-      .populate('category', 'name');
+  async findAllCourse(
+    page: number,
+    limit: number,
+    search: string
+  ): Promise<{ course: ICourse[]; total: number; totalPage: number }> {
+    const skip = (page - 1) * limit;
+
+    const searchQuery = search
+      ? { title: { $regex: search, $options: "i" } }
+      : {};
+
+    console.log(searchQuery);
+
+    const [course, total] = await Promise.all([
+      this.model
+        .find(searchQuery)
+        .skip(skip)
+        .limit(limit)
+        .populate("instructor", "name email")
+        .populate({
+          path: "category",
+          match: { isDeleted: false },
+          select: "name",
+        }),
+      this.model.countDocuments(searchQuery),
+    ]);
+
+    const totalPage = Math.ceil(total / limit);
+
+    return { course, total, totalPage };
   }
 
-  async getCoursesByInstructor(instructorId: string): Promise<ICourse[]> {
-    return this.model.find({ instructor: instructorId });
+  async findCourses(
+    page: number,
+    limit: number,
+    search: string,
+    category: string,
+    minPrice: number,
+    maxPrice: number
+  ): Promise<{ courses: ICourse[]; total: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+
+    const query: FilterQuery<ICourse> = {
+      isActive:true
+    };
+
+    if (search) {
+      query.title = { $regex: search, $options: "i" };
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    if (minPrice !== undefined && maxPrice !== undefined) {
+      query.price = { $gte: minPrice, $lte: maxPrice };
+    } else if (minPrice !== undefined) {
+      query.price = { $gte: minPrice };
+    } else if (maxPrice !== undefined) {
+      query.price = { $lte: maxPrice };
+    }
+
+    const [courses, total] = await Promise.all([
+      this.model
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .populate("instructor", "name email"),
+      this.model.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return { courses, total, totalPages };
   }
 
-  async updateCourse(courseId: string, courseData: Partial<ICourse>): Promise<ICourse | null> {
-    return this.model.findByIdAndUpdate(
+  async findCourseById(courseId: string): Promise<ICourse | null> {
+    const course = await this.model
+      .findById(courseId)
+      .populate("instructor", "name");
+
+    return course;
+  }
+
+  async findCoursesByInstructor(
+    instructorId: string,
+    page: number,
+    limit: number,
+    search: string
+  ): Promise<{ courses: ICourse[]; total: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+
+    const query: FilterQuery<ICourse> = { instructor: instructorId };
+
+    if (search) {
+      query.title = { $regex: search, $options: "i" };
+    }
+
+    const [courses, total] = await Promise.all([
+      this.model.find(query).skip(skip).limit(limit),
+      this.model.countDocuments(query),
+    ]);
+    const totalPages = Math.ceil(total / limit);
+    return { courses, total, totalPages };
+  }
+
+  async addEnrolledUser(
+    courseId: string,
+    userId: string
+  ): Promise<ICourse | null> {
+    return await Course.findByIdAndUpdate(courseId, {
+      $addToSet: { enrolledStudents: userId },
+    });
+  }
+
+  async updateCourseStatus(
+    courseId: string,
+    isActive: boolean
+  ): Promise<ICourse | null> {
+    return await this.model.findByIdAndUpdate(
       courseId,
-      { $set: courseData },
-      { new: true }
-    )
-    .populate('instructor', 'name email')
-    .populate('category', 'name');
-  }
-
-  async updateCourseStatus(courseId: string, isPublished: boolean): Promise<ICourse | null> {
-    return this.model.findByIdAndUpdate(
-      courseId,
-      { isPublished },
+      { isActive },
       { new: true }
     );
   }
 
-  async deleteCourse(courseId: string): Promise<void> {
-    await this.deleteById(courseId);
+  async updateCourseById(
+    courseId: string,
+    updateData: Partial<ICourse>
+  ): Promise<ICourse | null> {
+    return await Course.findByIdAndUpdate(courseId, updateData, {
+      new: true,
+    });
   }
 
-  async getAllCourses(): Promise<ICourse[]> {
-    return this.model.find()
-      .populate('instructor', 'name email')
-      .populate('category', 'name');
+  async getCourseStats(): Promise<{ title: string; enrolledCount: number }[]> {
+    const courses = await Course.find().select("title enrolledStudents");
+    return courses.map((course) => ({
+      title: course.title,
+      enrolledCount: course.enrolledStudents?.length || 0,
+    }));
   }
 
-  async getCourses(params: GetCoursesParams): Promise<any[]> {
-    const { query, page, limit, sort, order } = params;
-    // Use aggregation to get enrolled user count for each course
-    const courses = await Course.aggregate([
-      { $match: query },
-      { $sort: { [sort]: order === 'asc' ? 1 : -1 } },
-      { $skip: (page - 1) * limit },
-      { $limit: limit },
-      {
-        $lookup: {
-          from: 'enrollments',
-          localField: '_id',
-          foreignField: 'course',
-          as: 'enrollments',
-        },
-      },
-      {
-        $addFields: {
-          enrolledCount: {
-            $size: {
-              $filter: {
-                input: '$enrollments',
-                as: 'enrollment',
-                cond: { $eq: ['$$enrollment.status', 'completed'] },
-              },
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          enrollments: 0,
-        },
-      },
-    ]);
-    // Populate instructor and category fields
-    await Course.populate(courses, [
-      { path: 'instructor', select: 'name email' },
-      { path: 'category', select: 'name' },
-    ]);
-    return courses;
+  async getCourseStatsOfInstructor(
+    instructorId: string
+  ): Promise<{ title: string; enrolledCount: number }[]> {
+    const courses = await Course.find({ instructor: instructorId }).select(
+      "title enrolledStudents"
+    );
+    return courses.map((course) => ({
+      title: course.title,
+      enrolledCount: course.enrolledStudents?.length || 0,
+    }));
   }
 
-  async countCourses(query: any): Promise<number> {
-    return this.model.countDocuments(query);
+  async findByPurchasedUser(userId: string): Promise<string[]> {
+    const courses = await Course.find({ enrolledStudents: userId }).select(
+      "instructor"
+    );
+
+    const instructorIds = [
+      ...new Set(
+        courses.map((c) => (c.instructor as Types.ObjectId).toString())
+      ),
+    ];
+    
+    return instructorIds;
   }
 
-  async getCoursePerformanceReport(): Promise<any[]> {
-    // Aggregate course performance: enrollments and completions per course
-    return this.model.aggregate([
-      {
-        $lookup: {
-          from: 'enrollments',
-          localField: '_id',
-          foreignField: 'course',
-          as: 'enrollments',
-        },
-      },
-      {
-        $addFields: {
-          enrollments: { $size: '$enrollments' },
-          completions: {
-            $size: {
-              $filter: {
-                input: '$enrollments',
-                as: 'enr',
-                cond: { $eq: ['$$enr.status', 'completed'] },
-              },
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          title: 1,
-          enrollments: 1,
-          completions: 1,
-        },
-      },
-    ]);
+  async getUsersByInstructor(instructorId: string): Promise<string[]> {
+    const courses = await Course.find({ instructor: instructorId }).select(
+      "enrolledStudents"
+    );
+
+    const userIds = new Set<string>();
+    courses.forEach((course: ICourse) => {
+      course.enrolledStudents.forEach((userId: string | Types.ObjectId) => {
+        userIds.add(userId.toString());
+      });
+    });
+
+    return Array.from(userIds);
   }
 
-  async getCoursesWithPagination(params: GetAllCoursesParams, includeUnpublished = false): Promise<GetAllCoursesResult> {
-    const { page, limit, sort, order, search, category, level, minPrice, maxPrice } = params;
-    const query: any = {};
-    if (!includeUnpublished) {
-      query.isPublished = true;
-    }
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-    if (category) query.category = category;
-    if (level) query.level = level;
-    if (minPrice !== undefined || maxPrice !== undefined) {
-      query.price = {};
-      if (minPrice !== undefined) query.price.$gte = minPrice;
-      if (maxPrice !== undefined) query.price.$lte = maxPrice;
-    }
-    const total = await Course.countDocuments(query);
-    const courses = await Course.find(query)
-      .sort({ [sort]: order === 'asc' ? 1 : -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate('instructor', 'name')
-      .lean();
-    return {
-      courses: courses as ICourse[],
-      total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page
-    };
+  async findCourseByIdAndInstructor(courseId: string, instructorId: string):Promise<ICourse|null> {
+    return await Course.findOne({ _id: courseId, instructor: instructorId });
   }
-
-  async findByIdIfPublished(courseId: string): Promise<ICourse | null> {
-    return Course.findOne({ _id: courseId, isPublished: true })
-      .populate('instructor', 'name email')
-      .select('+demoVideo');
-  }
-
-  async findOne(filter: any): Promise<ICourse | null> {
-    return this.model.findOne(filter);
-  }
-
-  async getTopCoursesByEnrollments(limit = 3): Promise<any[]> {
-    return this.model.aggregate([
-      {
-        $lookup: {
-          from: 'enrollments',
-          localField: '_id',
-          foreignField: 'course',
-          as: 'enrollments',
-        },
-      },
-      {
-        $addFields: {
-          enrollmentsCount: { $size: '$enrollments' },
-        },
-      },
-      { $sort: { enrollmentsCount: -1 } },
-      { $limit: limit },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          enrollmentsCount: 1,
-        },
-      },
-    ]);
-  }
-
-  async getTopCoursesByCompletions(limit = 3): Promise<any[]> {
-    return this.model.aggregate([
-      {
-        $lookup: {
-          from: 'enrollments',
-          let: { courseId: '$_id' },
-          pipeline: [
-            { $match: { $expr: { $and: [ { $eq: ['$course', '$$courseId'] }, { $eq: ['$status', 'completed'] } ] } } },
-          ],
-          as: 'completedEnrollments',
-        },
-      },
-      {
-        $addFields: {
-          completionsCount: { $size: '$completedEnrollments' },
-        },
-      },
-      { $sort: { completionsCount: -1 } },
-      { $limit: limit },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          completionsCount: 1,
-        },
-      },
-    ]);
-  }
-} 
+}

@@ -1,36 +1,50 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import { IMessage } from "../interfaces/IMessage-interface";
+import mongoose, { Schema } from "mongoose";
+import { IMessage } from "../interfaces/chat.interface";
 
-export interface IMessage extends Document {
-  student: mongoose.Types.ObjectId;
-  instructor: mongoose.Types.ObjectId;
-  content: string;
-  isRead: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const messageSchema = new Schema<IMessage>({
-  student: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+const messageSchema: Schema<IMessage> = new Schema(
+  {
+    chat: {
+      type: Schema.Types.ObjectId,
+      ref: "Chat",
+      required: true,
+    },
+    senderId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+    },
+    senderRole: {
+      type: String,
+      enum: ["user", "instructor"],
+      required: true,
+    },
+    content: {
+      type: String,
+    },
+    image:{
+      type:String
+    },
+    isDeleted:{
+      type:Boolean,
+      default:false
+    },
+    readBy: [
+      {
+        readerId: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          refPath: "readBy.readerModel"
+        },
+        readerModel: {
+          type: String,
+          required: true,
+          enum: ["User", "Instructor"]
+        }
+      }
+    ]
   },
-  instructor: {
-    type: Schema.Types.ObjectId,
-    ref: 'Instructor',
-    required: true
-  },
-  content: {
-    type: String,
-    required: true
-  },
-  isRead: {
-    type: Boolean,
-    default: false
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true
-});
+);
 
-export default mongoose.model<IMessage>('Message', messageSchema); 
+export default mongoose.model("Message", messageSchema);

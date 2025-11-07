@@ -1,30 +1,46 @@
-import { IOtpRepository } from "../interfaces/IOtpRepository-interface";
-import { IOtp } from "../../models/interfaces/IOtp-interface";
+import { IOtpRepository } from "../interfaces/Iotp.interface";
+import { IOtp } from "../../models/interfaces/Iotp.interface";
 import Otp from "../../models/implementations/otpModel";
-import { BaseRepository } from "./base.repository";
+import { BaseRepository } from "../base.repository";
 
-export class OtpRepository extends BaseRepository<IOtp> implements IOtpRepository {
+export class OtpRepository
+  extends BaseRepository<IOtp>
+  implements IOtpRepository
+{
   constructor() {
     super(Otp);
   }
 
-  async saveOTP(data: { email: string; otp: string }): Promise<IOtp | null> {
+  async saveOTP(data: {
+    email: string;
+    otp: string;
+    expiresAt?: Date;
+  }): Promise<IOtp | null> {
     let saveotp: IOtp | null;
     const existing = await this.model.findOne({ email: data.email });
+
     if (existing) {
+      // Update the otp and reset createdAt so TTL (expires) is counted from now
       saveotp = await this.model.findOneAndUpdate(
         { email: data.email },
-        { otp: data.otp, expiresAt: new Date() },
+        { otp: data.otp, createdAt: new Date() },
         { new: true }
       );
     } else {
-      saveotp = await this.model.create(data);
+      // Create a fresh OTP document; createdAt defaults to now but set explicitly for clarity
+      saveotp = await this.model.create({
+        email: data.email,
+        otp: data.otp,
+        createdAt: new Date(),
+      } as any);
     }
+
     return saveotp;
   }
 
   async findOtpbyEmail(email: string): Promise<IOtp | null> {
-    return this.model.findOne({ email });
+    const otp = await this.model.findOne({ email });
+    return otp;
   }
 
   async deleteOtpbyEmail(email: string): Promise<void> {

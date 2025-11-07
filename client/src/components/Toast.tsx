@@ -1,19 +1,19 @@
-import {toast} from "react-toastify"
+import { toast } from "react-toastify";
 
 export const successToast = (message: string) => {
   toast.success(message, {
-    position: 'top-right',
-    autoClose: 3000,
+    position: "top-center",
+    autoClose: 1500,
     pauseOnHover: true,
-    theme: 'colored',
-  })
-}
+    theme: "colored",
+  });
+};
 
 export const errorToast = (message: string) => {
   toast.error(message, {
-    position: 'top-right',
-    autoClose: 3000,
+    position: "top-center",
+    autoClose: 1500,
     pauseOnHover: true,
-    theme: 'colored',
-  })
-}
+    theme: "colored",
+  });
+};

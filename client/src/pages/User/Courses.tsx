@@ -1,332 +1,237 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../../services/apiService';
-import { errorToast } from '../../components/Toast';
-import BeatLoader from "react-spinners/BeatLoader";
-import { Search, Filter, ChevronDown } from 'lucide-react';
-import { useDebounce } from '../../hooks/useDebounce';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Search, Filter, Star, Users, Clock, BookOpen } from "lucide-react";
+import Navbar from "../../components/Navbar";
+import type { Course } from "../../types/user.types";
+import { getCoursesS, getCategory } from "../../services/user.services";
+import { USER_ROUTES } from "../../constants/routes.constants";
+import Pagination from "../../components/Pagination";
 
-interface Category {
-  _id: string;
-  name: string;
-}
+type DebounceState = { search: string; minPrice: number; maxPrice: number };
 
-interface Course {
-  _id: string;
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  level: string;
-  duration: number;
-  thumbnail: string;
-  instructor: {
-    _id: string;
-    name: string;
-  };
-  createdAt: string;
-}
-
-interface CoursesResponse {
-  courses: Course[];
-  total: number;
-  totalPages: number;
-  currentPage: number;
-}
-
-const ITEMS_PER_PAGE = 9;
-
-const Courses = () => {
-  const navigate = useNavigate();
+const Courses: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [category, setCategory] = useState('');
-  const [level, setLevel] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [categoryInput, setCategoryInput] = useState(category);
-  const [levelInput, setLevelInput] = useState(level);
-  const [minPriceInput, setMinPriceInput] = useState(minPrice);
-  const [maxPriceInput, setMaxPriceInput] = useState(maxPrice);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [categories, setCategories] = useState<string[]>([]);
+  const pageParam = Number.parseInt(searchParams.get("page") || "1");
+  const [currentPage, setCurrentPage] = useState<number>(pageParam);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const itemsPerPage = 2;
+  const [total, setTotal] = useState<number>(0);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [debounce, setDebounce] = useState<DebounceState>({ search: "", minPrice: 0, maxPrice: 10000 });
+  const [sortBy, setSortBy] = useState<string>("title");
+  const [showFilters, setShowFilters] = useState<boolean>(false);
 
   useEffect(() => {
-    fetchCategories();
+    const t = setTimeout(() => {
+      setDebounce({ search: searchTerm, minPrice: priceRange[0], maxPrice: priceRange[1] });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchTerm, priceRange]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const res = await getCoursesS(
+          currentPage,
+          itemsPerPage,
+          debounce.search,
+          selectedCategory,
+          debounce.minPrice,
+          debounce.maxPrice
+        );
+        const data = res?.data || {};
+        setCourses(Array.isArray(data.courses) ? data.courses : []);
+        setTotalPages(typeof data.totalPages === "number" ? data.totalPages : 1);
+        setTotal(typeof data.total === "number" ? data.total : 0);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchCourses();
-  }, [currentPage, sortBy, sortOrder, debouncedSearchTerm, category, level, minPrice, maxPrice]);
+  }, [currentPage, itemsPerPage, debounce, selectedCategory]);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await axiosInstance.get<Category[]>('/api/users/categories');
-      setCategories(response.data);
-    } catch (error) {
-      errorToast('Failed to fetch categories');
-      console.error('Error fetching categories:', error);
-    }
-  };
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await getCategory();
+        setCategories(Array.isArray(res?.data) ? (res.data as string[]) : []);
+      } catch {
+        setCategories([]);
+      }
+    };
+    fetchCategories();
+  }, []);
 
-  const fetchCourses = async () => {
-    try {
-      const paramsObj: Record<string, string> = {
-        page: currentPage.toString(),
-        limit: ITEMS_PER_PAGE.toString(),
-        sort: sortBy,
-        order: sortOrder,
-        category,
-        level,
-      };
-      if (debouncedSearchTerm) paramsObj.search = debouncedSearchTerm;
-      if (minPrice) paramsObj.minPrice = minPrice;
-      if (maxPrice) paramsObj.maxPrice = maxPrice;
-      const params = new URLSearchParams(paramsObj);
-
-      const response = await axiosInstance.get<CoursesResponse>(`/api/users/courses?${params}`);
-      setCourses(response.data.courses);
-      setTotalPages(response.data.totalPages);
-    } catch (error) {
-      errorToast('Failed to fetch courses');
-      console.error('Error fetching courses:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const p = Number.parseInt(searchParams.get("page") || "1");
+    setCurrentPage(Number.isNaN(p) ? 1 : p);
+  }, [searchParams]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    setSearchParams({ page: page.toString() });
   };
 
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
-    }
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1);
-  };
-
-  const handleCourseClick = (courseId: string) => {
-    navigate(`/courses/${courseId}`);
-  };
-
-  const handleApplyFilters = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCategory(categoryInput);
-    setLevel(levelInput);
-    setMinPrice(minPriceInput);
-    setMaxPrice(maxPriceInput);
-    setCurrentPage(1);
-  };
-
-  const handleClearFilters = () => {
-    setCategoryInput('');
-    setLevelInput('');
-    setMinPriceInput('');
-    setMaxPriceInput('');
-    setCategory('');
-    setLevel('');
-    setMinPrice('');
-    setMaxPrice('');
-    setCurrentPage(1);
-  };
+  const sortedCourses = useMemo(() => {
+    const list = [...courses];
+    if (sortBy === "title") list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    else if (sortBy === "price") list.sort((a, b) => (a.price || 0) - (b.price || 0));
+    else if (sortBy === "rating") list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    return list;
+  }, [courses, sortBy]);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <BeatLoader color="#7e22ce" size={30} />
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--text-800)]">
+        <Navbar />
+        <div className="pt-32 max-w-4xl mx-auto px-4">
+          <div className="space-y-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton h-32" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-20 flex flex-col">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-800)]">
       <Navbar />
-      <div className="max-w-7xl mx-auto flex-1 px-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Available Courses</h1>
+      <div className="pt-6 pb-8 max-w-6xl mx-auto px-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <div>
+            <h1 className="h1 soft-in">Explore Courses</h1>
+            <p className="text-[color:var(--text-600)] text-sm">{total} courses available</p>
+          </div>
+          <button onClick={() => setShowFilters((v) => !v)} className="sm:hidden btn btn-ghost mt-4 sm:mt-0">
+            <Filter className="h-4 w-4" /> Filters
+          </button>
         </div>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar Filters */}
-          <aside className="md:w-72 w-full bg-white rounded-xl shadow-lg p-6 mb-6 md:mb-0 flex-shrink-0 border border-gray-200">
-            <form onSubmit={handleApplyFilters} className="space-y-6">
-              {/* Search */}
+          <div className={`md:w-1/3 ${showFilters ? "" : "hidden md:block"}`}>
+            <div className="card p-6 space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Search</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search courses..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                </div>
+                <label className="block text-sm font-medium text-[color:var(--text-600)] mb-1">
+                  <span className="flex items-center gap-2">
+                    <Search className="h-4 w-4" /> Search
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                  placeholder="Title or instructor"
+                />
               </div>
-              {/* Category */}
+
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                <label className="block text-sm font-medium text-[color:var(--text-600)] mb-1">Category</label>
                 <select
-                  value={categoryInput}
-                  onChange={(e) => setCategoryInput(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  value={selectedCategory}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedCategory(e.target.value)}
+                  className="w-full"
                 >
                   <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
                     </option>
                   ))}
                 </select>
               </div>
-              {/* Level */}
+
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Level</label>
-                <select
-                  value={levelInput}
-                  onChange={(e) => setLevelInput(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="">All Levels</option>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
-              </div>
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Price</label>
-                <div className="flex gap-2">
+                <label className="block text-sm font-medium text-[color:var(--text-600)] mb-1">
+                  Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}
+                </label>
+                <div className="flex items-center gap-3">
                   <input
                     type="number"
-                    placeholder="Min"
-                    value={minPriceInput}
-                    onChange={(e) => setMinPriceInput(e.target.value)}
-                    className="w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    value={priceRange[0]}
+                    min={0}
+                    max={priceRange[1]}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setPriceRange([Number(e.target.value), priceRange[1]])
+                    }
                   />
                   <input
                     type="number"
-                    placeholder="Max"
-                    value={maxPriceInput}
-                    onChange={(e) => setMaxPriceInput(e.target.value)}
-                    className="w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    value={priceRange[1]}
+                    min={priceRange[0]}
+                    max={100000}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setPriceRange([priceRange[0], Number(e.target.value)])
+                    }
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button type="submit" className="flex-1 bg-purple-600 text-white font-semibold py-2 rounded-md hover:bg-purple-700 transition">Apply Filters</button>
-                <button type="button" onClick={handleClearFilters} className="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 rounded-md hover:bg-gray-300 transition">Clear Filters</button>
-              </div>
-            </form>
-          </aside>
 
-          {/* Main Content */}
-          <main className="flex-1">
-            {/* Sort Section */}
-            <div className="flex justify-end mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Sort by:</span>
-                <button
-                  onClick={() => handleSort('price')}
-                  className={`px-3 py-1 text-sm rounded-md ${
-                    sortBy === 'price'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
+              <div>
+                <label className="block text-sm font-medium text-[color:var(--text-600)] mb-1">Sort By</label>
+                <select
+                  value={sortBy}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value)}
+                  className="w-full"
                 >
-                  Price {sortBy === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
-                </button>
-                <button
-                  onClick={() => handleSort('createdAt')}
-                  className={`px-3 py-1 text-sm rounded-md ${
-                    sortBy === 'createdAt'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  Latest {sortBy === 'createdAt' && (sortOrder === 'asc' ? '↑' : '↓')}
-                </button>
+                  <option value="title">Title</option>
+                  <option value="price">Price</option>
+                  <option value="rating">Rating</option>
+                </select>
               </div>
             </div>
+          </div>
 
-            {/* Course Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.length === 0 ? (
-                <div className="col-span-3 text-center text-gray-500 py-12 text-lg">No courses found.</div>
-              ) : (
-                courses.map((course) => (
-                  <div
-                    key={course._id}
-                    onClick={() => handleCourseClick(course._id)}
-                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow duration-200"
-                  >
-                    <div className="relative h-48">
-                      <img
-                        src={course.thumbnail}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 right-2">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                          {course.level}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{course.title}</h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{course.description}</p>
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold text-purple-600">${course.price}</span>
-                        <span className="text-sm text-gray-500">{course.duration}h</span>
-                      </div>
-                      <div className="mt-2 text-sm text-gray-500">
-                        By {course.instructor.name}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="md:flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {sortedCourses.map((course) => (
+              <Link
+                key={course._id}
+                to={`${USER_ROUTES.COURSES}/${course._id}`}
+                className="card p-5 hover:shadow-2 soft-in"
+              >
+                <img
+                  src={course.thumbnail}
+                  alt={course.title}
+                  className="w-full h-40 object-cover radius-md"
+                  style={{ borderRadius: "12px" }}
+                />
+                <h3 className="mt-3 font-semibold text-[color:var(--text-900)] line-clamp-2">{course.title}</h3>
+                <p className="mt-1 text-sm text-[color:var(--text-600)] line-clamp-2">{course.description}</p>
+                <div className="mt-3 flex items-center justify-between text-sm text-[color:var(--text-600)]">
+                  <span className="inline-flex items-center gap-1">
+                    <Star className="h-4 w-4" /> {course.rating ?? "N/A"}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="h-4 w-4" /> {course.enrolled ?? 0}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-4 w-4" /> {course.duration ?? "—"}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="font-semibold">₹{course.price}</span>
+                  <span className="badge">
+                    <BookOpen className="h-3 w-3" /> {course.category || "Course"}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-6 flex justify-center">
-                <nav className="flex items-center gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 rounded-md ${
-                        currentPage === page
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-white text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-            )}
-          </main>
+        <div className="mt-8">
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
         </div>
       </div>
-      <Footer />
     </div>
   );
 };
 
-export default Courses; 
+export default Courses;

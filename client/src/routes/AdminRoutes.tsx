@@ -1,57 +1,53 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import AdminLogin from '../pages/Admin/AdminLogin';
-import AdminDashboard from '../pages/Admin/AdminDashboard';
-import AdminNavbar from '../components/AdminNavbar';
-import AdminUsers from '../pages/Admin/AdminUsers';
-import AdminTutors from '../pages/Admin/AdminTutors';
-import AdminTutorRequests from '../pages/Admin/AdminTutorRequests';
-import Courses from '../pages/Admin/Courses';
-import Categories from '../pages/Admin/Categories';
-import AdminInstructors from "../pages/Admin/AdminInstructors";
-import AdminInstructorRequests from "../pages/Admin/AdminInstructorRequests";
-import AdminProfile from '../pages/Admin/AdminProfile';
-import AdminSettings from '../pages/Admin/AdminSettings';
-import AdminCoursePreview from '../pages/Admin/AdminCoursePreview';
-import AdminUserActivityReport from '../pages/Admin/AdminUserActivityReport';
-import AdminCoursePerformanceReport from '../pages/Admin/AdminCoursePerformanceReport';
-import AdminLearningPaths from '../pages/Admin/AdminLearningPaths';
-
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = localStorage.getItem('adminAccessToken');
-  return isAuthenticated ? <>{children}</> : <Navigate to="/admin/login" />;
-};
+import { Route } from "react-router-dom";
+import AdminLogin from "../pages/Admin/AdminLogin";
+import AdminNavbar from "../components/AdminNavbar";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
+import AdminUsers from "../pages/Admin/AdminUsers";
+import AdminTutors from "../pages/Admin/AdminTutors";
+import AdminTutorRequests from "../pages/Admin/AdminTutorRequests";
+import AdminPrivateRoute from "./AdminPrivateRoutes";
+import AdminCategory from "../pages/Admin/AdminCategory";
+import AdminCourse from "../pages/Admin/AdminCourse";
+import AdminReviews from "../pages/Admin/AdminReviews";
+import Earnings from "../components/Earnings";
+import ComplaintPage from "../components/ComplaintPage";
+import AdminCourseView from "../pages/Admin/AdminCourseView";
+import TutorDetail from "../pages/Admin/AdminTutorVIew";
+// import { NotificationProvider } from "../context/NotificationContext";
+// import AdminNotification from "../pages/Admin/AdminNotification";
+import { ADMIN_ROUTES } from "../constants/routes.constants";
+import UserActivityReport from "../pages/Admin/UserActivityReport";
+import CoursePerformanceReport from "../pages/Admin/CoursePerformanceReport";
 
 const AdminRoutes = () => {
   return (
-    <Routes>
-      <Route path="/login" element={<AdminLogin />} />
-      <Route
-        path=""
-        element={
-          <ProtectedRoute>
+    <>
+      <Route path={ADMIN_ROUTES.LOGIN} element={<AdminLogin />} />
+      <Route path={ADMIN_ROUTES.BASE} element={<AdminPrivateRoute />}>
+        <Route
+          element={
+            // <NotificationProvider>
             <AdminNavbar />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="tutors" element={<AdminTutors />} />
-        <Route path="tutor-requests" element={<AdminTutorRequests />} />
-        <Route path="courses" element={<Courses />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="instructors" element={<AdminInstructors />} />
-        <Route path="instructor-requests" element={<AdminInstructorRequests />} />
-        <Route path="profile" element={<AdminProfile />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="courses/:courseId/preview" element={<AdminCoursePreview />} />
-        <Route path="reports/user-activity" element={<AdminUserActivityReport />} />
-        <Route path="reports/course-performance" element={<AdminCoursePerformanceReport />} />
-        <Route path="learning-paths" element={<AdminLearningPaths />} />
+            // </NotificationProvider>
+          }
+        >
+          <Route path={ADMIN_ROUTES.DASHBOARD} element={<AdminDashboard />} />
+          <Route path={ADMIN_ROUTES.USERS} element={<AdminUsers />} />
+          <Route path={ADMIN_ROUTES.TUTORS} element={<AdminTutors />} />
+          <Route path={ADMIN_ROUTES.TUTOR_REQUESTS} element={<AdminTutorRequests />} />
+          <Route path={ADMIN_ROUTES.TUTOR_VIEW()} element={<TutorDetail />} />
+          <Route path={ADMIN_ROUTES.CATEGORY} element={<AdminCategory />} />
+          <Route path={ADMIN_ROUTES.COURSES} element={<AdminCourse />} />
+          <Route path={ADMIN_ROUTES.REVIEWS} element={<AdminReviews />} />
+          <Route path={ADMIN_ROUTES.COMPLAINTS} element={<ComplaintPage />} />
+          <Route path={ADMIN_ROUTES.EARNINGS} element={<Earnings role="admin" />} />
+          <Route path={ADMIN_ROUTES.COURSE_VIEW()} element={<AdminCourseView />} />
+          {/* <Route path={ADMIN_ROUTES.NOTIFICATIONS} element={<AdminNotification/>}/> */}
+          <Route path={ADMIN_ROUTES.USER_ACTIVITY_REPORT} element={<UserActivityReport />} />
+          <Route path={ADMIN_ROUTES.COURSE_PERFORMANCE_REPORT} element={<CoursePerformanceReport />} />
+        </Route>
       </Route>
-    </Routes>
+    </>
   );
 };
 

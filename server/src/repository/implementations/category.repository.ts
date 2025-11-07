@@ -1,38 +1,88 @@
-import { ICategoryRepository } from '../interfaces/category.repository';
-import CategoryModel, { ICategory } from '../../models/Category';
-import { BaseRepository } from './base.repository';
+import { ICategory } from "../../models/interfaces/category.interface";
+import { ICategoryRepository } from "../interfaces/Icategory.interface";
+import Category from "../../models/implementations/categoryModel";
+import { BaseRepository } from "../base.repository";
+import { FilterQuery } from "mongoose";
 
-export class CategoryRepository extends BaseRepository<ICategory> implements ICategoryRepository {
+export class CategoryRepository
+  extends BaseRepository<ICategory>
+  implements ICategoryRepository
+{
   constructor() {
-    super(CategoryModel);
+    super(Category);
+  }
+  async createCategory(name: string): Promise<ICategory | null> {
+    const sName = name.toLowerCase();
+    const category = await this.model.create({ name: sName });
+    return category;
   }
 
-  async findAll(): Promise<ICategory[]> {
-    return this.model.find().sort({ createdAt: -1 });
+  async findCategory(name: string): Promise<ICategory | null> {
+    const sName = name.toLowerCase();
+    const category = await this.model.findOne({ name: sName });
+    return category;
   }
 
-  async create(name: string): Promise<ICategory> {
-    try {
-      const category = new this.model({ name });
-      return await category.save();
-    } catch (err: any) {
-      console.error('Category creation error:', err); // Log the full error
-      if (err.code === 11000) {
-        // Duplicate key error
-        throw new Error('Category name already exists.');
-      }
-      if (err.name === 'ValidationError') {
-        throw new Error('Category name is required.');
-      }
-      throw err;
+  async findCategoryById(id: string): Promise<ICategory | null> {
+    const category = await this.model.findById(id);
+    return category;
+  }
+
+  async getCatgeories(
+    page: number,
+    limit: number,
+    search: string,
+    status: string
+  ): Promise<{ category: ICategory[]; total: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+
+    const query: FilterQuery<ICategory> = {};
+
+    if (search) {
+      query.$or = [{ name: { $regex: search, $options: "i" } }];
     }
+
+    if(status==="active"){
+      query.isDeleted=false
+    }else if(status==="inactive"){
+      query.isDeleted=true
+    }
+
+    const [category, total] = await Promise.all([
+      this.model.find(query).skip(skip).limit(limit),
+      this.model.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return { category, total, totalPages };
   }
 
-  async update(id: string, name: string): Promise<ICategory | null> {
-    return this.model.findByIdAndUpdate(id, { name }, { new: true });
+  async getCategory(): Promise<string[] | null> {
+    const category= await Category.find({},{name:1,_id:0})
+    return category.map(cat=>cat.name)
   }
 
-  async delete(id: string): Promise<ICategory | null> {
-    return this.model.findByIdAndDelete(id);
+  async getCatgeoriesInstructor(): Promise<ICategory[] | null> {
+    const categories = await this.model.find({});
+    return categories;
   }
-} 
+
+  async deleteCategory(id: string): Promise<ICategory | null> {
+    const category = await this.model.findByIdAndUpdate(
+      id,
+      { isDeleted: true },
+      { new: true }
+    );
+    return category;
+  }
+
+  async restoreCategory(id: string): Promise<ICategory | null> {
+    const category = await this.model.findByIdAndUpdate(
+      id,
+      { isDeleted: false },
+      { new: true }
+    );
+    return category;
+  }
+}

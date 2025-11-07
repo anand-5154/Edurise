@@ -1,132 +1,126 @@
-import {Router} from "express"
-import {Authcontroller} from "../controllers/implementations/auth.controller"
-import {AuthRepository} from "../repository/implementations/auth.repository"
-import {OtpRepository} from "../repository/implementations/otp.repository"
-import {AuthService} from "../services/implementation/auth.services"
-import passport from "../config/passport.config"
-import express from 'express';
-import { authMiddleware, roleMiddleware } from '../middleware/auth.middleware';
-import { UserController } from '../controllers/implementations/user.controller';
-import { UserService } from '../services/implementation/user.services';
-import multer from 'multer';
-import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { UserRepository } from '../repository/implementations/user.repository';
-import { CategoryRepository } from '../repository/implementations/category.repository';
-import { CourseRepository } from '../repository/implementations/course.repository';
-import { ModuleRepository } from '../repository/implementations/module.repository';
-import { LectureRepository } from '../repository/implementations/lecture.repository';
-import { EnrollmentRepository } from '../repository/implementations/enrollment.repository';
-import { LectureProgressRepository } from '../repository/implementations/lectureProgress.repository';
-import { LearningPathRepository } from '../repository/implementations/learningPath.repository';
+import { Router } from "express";
+import passport from "../config/passport.config";
+import upload from "../utils/multer";
+import authRole from "../middlewares/authRole";
+import { authController } from "../dependencyHandlers/user.dependencyhandler";
+import multer from "multer";
 
-const userRepository = new UserRepository();
-const otpRepository = new OtpRepository();
-const authService = new AuthService(userRepository, otpRepository);
-const authController = new Authcontroller(authService);
+const storage = multer.memoryStorage();
+const uploadCertificate = multer({ storage });
 
-// Initialize user controller and service
-const categoryRepository = new CategoryRepository();
-const courseRepository = new CourseRepository();
-const moduleRepository = new ModuleRepository();
-const lectureRepository = new LectureRepository();
-const enrollmentRepository = new EnrollmentRepository();
-const lectureProgressRepository = new LectureProgressRepository();
-const learningPathRepository = new LearningPathRepository();
-const userService = new UserService(userRepository, courseRepository, moduleRepository, lectureRepository, categoryRepository, enrollmentRepository, lectureProgressRepository, learningPathRepository);
-const userController = new UserController(userService);
+const router = Router();
 
-const router=Router()
-
-router.post("/register",authController.signup.bind(authController))
-router.post("/login",authController.signin.bind(authController))
-router.post("/verify-otp",authController.verifyOtp.bind(authController))
-router.post("/forgotpassword",authController.forgotPassword.bind(authController))
-router.post("/reset-verify-otp",authController.verifyForgotOtp.bind(authController))
-router.put("/resetpassword",authController.resetPassword.bind(authController))
-router.post("/resend-otp",authController.resentOtp.bind(authController))
+router.post("/register", authController.signup.bind(authController));
 router.post("/refresh-token", authController.refreshToken.bind(authController));
-router.get("/auth/google",passport.authenticate("google",{scope:["profile","email"],session:false}))
+router.post("/login", authController.signin.bind(authController));
+router.post("/verify-otp", authController.verifyOtp.bind(authController));
+router.post(
+  "/forgotpassword",
+  authController.forgotPassword.bind(authController)
+);
+router.post(
+  "/reset-verify-otp",
+  authController.verifyForgotOtp.bind(authController)
+);
+router.put("/resetpassword", authController.resetPassword.bind(authController));
+router.post("/verifygoogle", authController.verifyGoogle.bind(authController));
+router.post("/resend-otp", authController.resentOtp.bind(authController));
+router.get(
+  "/profile",
+  authRole(["user"]),
+  authController.getProfile.bind(authController)
+);
+router.patch(
+  "/profile",
+  authRole(["user"]),
+  upload.single("profilePicture"),
+  authController.updateProfile.bind(authController)
+);
+router.get("/courses", authController.getCourses.bind(authController));
+router.get("/category",authController.getCategory.bind(authController))
+router.post(
+  "/orders",
+  authRole(["user"]),
+  authController.buyCourse.bind(authController)
+);
+router.put("/cancel-order/:orderId",authRole(["user"]),authController.cancelOrder.bind(authController))
+router.get("/course-order/:courseId",authRole(["user"]),authController.getPreviousOrder.bind(authController))
+router.put("/retrypayment/:orderId",authRole(["user"]),authController.retryPayment.bind(authController))
+router.post(
+  "/orders/verify",
+  authRole(["user"]),
+  authController.verifyOrder.bind(authController)
+);
+router.get(
+  "/courses/:courseId",
+  authRole(["user"]),
+  authController.findCourseById.bind(authController)
+);
+router.post(
+  "/course-view/progress/:courseId",
+  authRole(["user"]),
+  authController.markLectureWatched.bind(authController)
+);
+router.get(
+  "/course-view/progress/:courseId",
+  authRole(["user"]),
+  authController.getCourseProgress.bind(authController)
+);
+router.get(
+  "/courses/progress/:courseId",
+  authRole(["user"]),
+  authController.checkStatus.bind(authController)
+);
+router.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+  })
+);
 router.get(
   "/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/register", session: false }),
-  authController.googleAuth.bind(authController))
-
-// Public routes
-router.get('/courses', userController.getAllCourses.bind(userController));
-router.get('/courses/:courseId', userController.getCourseById.bind(userController));
-router.get('/categories', userController.getAllCategories.bind(userController));
-
-// Learning Path routes
-router.get('/learning-paths', async (req, res) => {
-  try {
-    const paths = await userService.getAllLearningPaths();
-    res.json(paths);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch learning paths' });
-  }
-});
-
-router.get('/learning-paths/:pathId/courses', async (req, res) => {
-  try {
-    const courses = await userService.getLearningPathCourses(req.params.pathId);
-    res.json(courses);
-  } catch (err) {
-    res.status(404).json({ message: err.message });
-  }
-});
-
-// Explicitly configure Cloudinary with credentials from environment variables
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-// Cloudinary storage config
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: () => ({
-    folder: 'user-profiles',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
-    transformation: [{ width: 300, height: 300, crop: 'limit' }],
+  passport.authenticate("google", {
+    failureRedirect: "/register",
+    session: false,
   }),
-});
-const upload = multer({ storage });
+  authController.googleAuth.bind(authController)
+);
 
-// Protected routes
-router.use(authMiddleware);
-router.use(roleMiddleware(['user']));
+router.get(
+  "/instructors/purchased",
+  authRole(["user"]),
+  authController.getPurchasedInstructors.bind(authController)
+);
+router.post(
+  "/complaints",
+  authRole(["user"]),
+  authController.submitComplaint.bind(authController)
+);
+router.get(
+  "/notifications/:userId",
+  authController.getNotifications.bind(authController)
+);
+router.put(
+  "/notifications/read/:notificationId",
+  authController.markAsRead.bind(authController)
+);
+router.get(
+  "/purchase-history",
+  authRole(["user"]),
+  authController.getPurchases.bind(authController)
+);
+router.get("/purchased-courses",authRole(["user"]),authController.purchasedCourses.bind(authController))
+router.post("/change-password",authRole(["user"]),authController.changePassword.bind(authController))
+router.get("/courseinstructor/:instructorId",authRole(["user"]),authController.courseInstructorView.bind(authController))
+router.get("/certificates/:id",authRole(["user"]),authController.getCertificates.bind(authController))
+router.get("/chats/unread-counts",authRole(["user"]),authController.getUnreadCounts.bind(authController))
+router.post("/messages/mark-as-read/:chatId",authRole(["user"]),authController.markRead.bind(authController))
+router.get("/quiz/:courseId",authRole(["user"]),authController.getQuiz.bind(authController))
+router.post("/submitquiz/:quizId",authRole(["user"]),authController.submitQuiz.bind(authController))
+router.post("/create-certificate",uploadCertificate.single("certificate"),authController.createCertificate.bind(authController))
+router.get("/live/token",authRole(["user"]),authController.getSessionToken.bind(authController))
+router.get("/course/live/:courseId",authRole(["user"]),authController.getLiveSessionByCourseId.bind(authController))
+router.post("/logout", authController.logOut.bind(authController));
 
-// My Courses endpoint
-router.get('/my-courses', userController.getPurchasedCourses.bind(userController));
-// Move this route below the middleware so req.user is set
-router.get('/courses/:courseId/modules', (req, res, next) => {
-  // @ts-ignore
-  console.log('[ROUTE] /users/courses/:courseId/modules hit', req.params.courseId, req.user?.id);
-  next();
-}, userController.getModulesForCourse.bind(userController));
-
-// Move enrolled check route here so it is protected
-router.get('/courses/:courseId/enrolled', userController.isEnrolledInCourse.bind(userController));
-
-// Add a route-level log for debugging lectures fetch
-router.get('/modules/:moduleId/lectures', (req, res, next) => {
-  // @ts-ignore
-  console.log('[ROUTE] /users/modules/:moduleId/lectures hit', req.params.moduleId, req.user?.id);
-  next();
-}, userController.getLecturesForModule.bind(userController));
-
-// Profile routes
-router.get('/profile', userController.getProfile.bind(userController));
-router.put('/profile', userController.updateProfile.bind(userController));
-router.post('/upload-profile-picture', upload.single('profilePicture'), userController.uploadProfilePicture.bind(userController));
-router.put('/change-password', userController.changePassword.bind(userController));
-
-// After router.use(authMiddleware); and router.use(roleMiddleware(['user']));
-router.post('/courses/:courseId/lectures/:lectureIndex/complete', userController.completeLecture.bind(userController));
-router.get('/courses/:courseId/progress', userController.getLectureProgress.bind(userController));
-// Add the route for marking a lecture as completed
-router.post('/modules/:moduleId/lectures/:lectureId/complete', userController.completeLecture.bind(userController));
-
-export default router
+export default router;

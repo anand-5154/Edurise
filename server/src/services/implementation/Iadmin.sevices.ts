@@ -1,0 +1,429 @@
+import { IAdminService } from "../interfaces/admin.services";
+import { IAdminRepository } from "../../repository/interfaces/Iadmin.interface";
+import { IInstructorAuthRepository } from "../../repository/interfaces/IinstructorAuth.interface";
+import { IAuthRepository } from "../../repository/interfaces/Iauth.interface";
+import { generateRefreshToken, generateToken } from "../../utils/jwt";
+import bcrypt from "bcrypt";
+import { AdminLoginResponse, DashboardData } from "../../types/admin.types";
+import { sendRejectionMail } from "../../utils/sendMail";
+import { ICategoryRepository } from "../../repository/interfaces/Icategory.interface";
+import { ICourseRepository } from "../../repository/interfaces/Icourse.interface";
+import { IReviewRepository } from "../../repository/interfaces/Ireview.interface";
+import {
+  ITransaction,
+  IWallet,
+} from "../../models/interfaces/Iwallet.interface";
+import { IWalletRepository } from "../../repository/interfaces/Iwallet.interface";
+import { IComplaintRepository } from "../../repository/interfaces/Icomplaint.interface";
+import { INotificationRepository } from "../../repository/interfaces/Inotification.interface";
+import { UserDTO } from "../../DTO/user.dto";
+import { toUserDTO, toUserDTOList } from "../../Mappers/user.mapper";
+import { InstructorDTO } from "../../DTO/instructor.dto";
+import {
+  toInstructorDTO,
+  toInstructorDTOList,
+} from "../../Mappers/instructor.mapper";
+import { CourseDTO } from "../../DTO/course.dto";
+import { toCourseDTO, toCourseDTOList } from "../../Mappers/course.mapper";
+import { CategoryDTO } from "../../DTO/category.dto";
+import {
+  toCategoryDTO,
+  toCategoryDTOList,
+} from "../../Mappers/category.mapper";
+import { ReviewDTO } from "../../DTO/review.dto";
+import { toReviewDTO, toReviewDTOList } from "../../Mappers/review.mapper";
+import { ComplaintDTO } from "../../DTO/complaint.dto";
+import { toComplaintDTO, toComplaintDTOList } from "../../Mappers/complaint.mapper";
+import { NotificationDTO } from "../../DTO/notification.dto";
+import { toNotificationDTO, toNotificationDTOList } from "../../Mappers/notification.mapper";
+import { FilterQuery } from "mongoose";
+import { UserActivityReportDTO } from "../../DTO/userActivityReport.dto";
+import { CoursePerformanceReportDTO } from "../../DTO/coursePerformanceReport.dto";
+
+export class AdminService implements IAdminService {
+  constructor(
+    private _adminRepository: IAdminRepository,
+    private _instructorRepository: IInstructorAuthRepository,
+    private _userRepository: IAuthRepository,
+    private _categoryRepository: ICategoryRepository,
+    private _courseRepository: ICourseRepository,
+    private _reviewRepository: IReviewRepository,
+    private _walletRepository: IWalletRepository,
+    private _complaintRepository: IComplaintRepository,
+    private _notificationRepository: INotificationRepository
+  ) {}
+
+  async login(email: string, password: string): Promise<AdminLoginResponse> {
+    // normalize email and log for debugging when admin login fails intermittently
+    const normalizedEmail = email?.trim().toLowerCase();
+    console.log("Admin login attempt for:", normalizedEmail);
+
+    const admin = await this._adminRepository.findAdminByEmail(
+      normalizedEmail as string
+    );
+
+    if (!admin) {
+      console.log("No admin found for:", normalizedEmail);
+      throw new Error("Admin not found");
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      throw new Error("Password doesn't match");
+    }
+
+    const token = generateToken(admin._id.toString(), admin.email, "admin");
+    const adminRefreshToken = generateRefreshToken(
+      admin._id.toString(),
+      admin.email,
+      "admin"
+    );
+
+    return { token, email: admin.email, adminRefreshToken };
+  }
+
+  async blockUnblockUser(email: string, blocked: boolean): Promise<UserDTO> {
+    const user = await this._userRepository.findByEmail(email);
+    console.log(user);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const updateUser = await this._adminRepository.updateUserBlockStatus(
+      email,
+      blocked
+    );
+
+    if (!updateUser) {
+      throw new Error("Failed to update user");
+    }
+    return toUserDTO(updateUser);
+  }
+
+  async blockUnblockTutor(
+    email: string,
+    blocked: boolean
+  ): Promise<InstructorDTO> {
+    const tutor = await this._instructorRepository.findByEmail(email);
+    console.log(tutor);
+    if (!tutor) {
+      throw new Error("Tutor not found");
+    }
+
+    const updateTutor = await this._adminRepository.updateTutorBlockStatus(
+      email,
+      blocked
+    );
+    if (!updateTutor) {
+      throw new Error("Failed to update tutor");
+    }
+    return toInstructorDTO(updateTutor);
+  }
+
+  async getAllUsers(
+    page: number,
+    limit: number,
+    search: string
+  ): Promise<{ users: UserDTO[]; total: number; totalPages: number }> {
+    const { users, total, totalPages } =
+      await this._adminRepository.getAllUsers(page, limit, search);
+    return { users: toUserDTOList(users), total, totalPages };
+  }
+
+  async getAllTutors(
+    page: number,
+    limit: number,
+    filter: FilterQuery<InstructorDTO>
+  ): Promise<{ tutors: InstructorDTO[]; total: number; totalPages: number }> {
+    const { tutors, total, totalPages } =
+      await this._adminRepository.getAllTutors(page, limit, filter);
+    return { tutors: toInstructorDTOList(tutors), total, totalPages };
+  }
+
+  async verifyTutor(email: string): Promise<InstructorDTO> {
+    const instructor = await this._instructorRepository.updateTutor(
+      email,
+      true,
+      false,
+      "active"
+    );
+    if(!instructor){
+      throw new Error("failed to updated instructor")
+    }
+    return toInstructorDTO(instructor)
+  }
+
+  async rejectTutor(
+    email: string,
+    reason: string
+  ): Promise<InstructorDTO> {
+    const instructor = await this._instructorRepository.findByEmail(email);
+
+    if (!instructor) {
+      throw new Error("Tutor not found");
+    }
+
+    instructor.isVerified = false;
+    instructor.isRejected = true;
+    instructor.accountStatus = "rejected";
+    await sendRejectionMail(instructor.email, reason);
+    return await instructor.save();
+  }
+
+  async getDashboardData(): Promise<DashboardData> {
+    return await this._adminRepository.getDashboardData();
+  }
+
+  async addCategory(name: string): Promise<CategoryDTO> {
+    const category = await this._categoryRepository.findCategory(name);
+
+    if (category) {
+      throw new Error("Category already exists");
+    }
+
+    const newCategory = await this._categoryRepository.createCategory(name);
+
+    if (!newCategory) {
+      throw new Error("Failed to create category");
+    }
+    return toCategoryDTO(newCategory);
+  }
+
+  async getCategories(
+    page: number,
+    limit: number,
+    search: string,
+    status: string
+  ): Promise<{ category: CategoryDTO[]; total: number; totalPages: number }> {
+    const { category, total, totalPages } =
+      await this._categoryRepository.getCatgeories(page, limit, search, status);
+    if (!category) {
+      throw new Error("No categories found");
+    }
+    return { category: toCategoryDTOList(category), total, totalPages };
+  }
+
+  async deleteCategory(id: string): Promise<CategoryDTO> {
+    const category = await this._categoryRepository.findCategoryById(id);
+    if (!category) {
+      throw new Error("No category found");
+    }
+    const deleted = await this._categoryRepository.deleteCategory(id);
+    if(!deleted){
+      throw new Error("failed to delete category")
+    }
+
+    return toCategoryDTO(deleted)
+  }
+
+  async restoreCategory(id: string): Promise<CategoryDTO> {
+    const category = await this._categoryRepository.findCategoryById(id);
+    if (!category) {
+      throw new Error("No category found");
+    }
+    const restored = await this._categoryRepository.restoreCategory(id);
+
+    if(!restored){
+      throw new Error("failed to restore category")
+    }
+
+    return toCategoryDTO(restored)
+  }
+
+  async getCoursesService(
+    page: number,
+    limit: number,
+    search: string
+  ): Promise<{ course: CourseDTO[]; total: number; totalPage: number }> {
+    const { course, total, totalPage } =
+      await this._courseRepository.findAllCourse(page, limit, search);
+    return { course: toCourseDTOList(course), total, totalPage };
+  }
+
+  async softDeleteCourseS(courseId: string): Promise<CourseDTO> {
+    const course= await this._courseRepository.updateCourseStatus(courseId, false);
+    if(!course){
+      throw new Error("failed to delete course")
+    }
+    return toCourseDTO(course)
+  }
+
+  async recoverCourseS(courseId: string): Promise<CourseDTO> {
+    const course = await this._courseRepository.updateCourseStatus(courseId, true);
+
+    if(!course){
+      throw new Error("failed to recover the course")
+    }
+
+    return toCourseDTO(course)
+  }
+
+  async getAllReviews(
+    page: number,
+    limit: number,
+    search: string,
+    rating: number | null,
+    sort: string
+  ): Promise<{ reviews: ReviewDTO[]; total: number; totalPages: number }> {
+    const { reviews, total, totalPages } =
+      await this._reviewRepository.getAllReviews(
+        page,
+        limit,
+        search,
+        rating,
+        sort
+      );
+
+    return { reviews: toReviewDTOList(reviews), total, totalPages };
+  }
+
+  async hideReview(id: string): Promise<ReviewDTO> {
+    const review = await this._reviewRepository.findReviewAndHide(id);
+
+    if (!review) {
+      throw new Error("Review not found");
+    }
+
+    return toReviewDTO(review);
+  }
+
+  async unhideReview(id: string): Promise<ReviewDTO> {
+    const review = await this._reviewRepository.findReviewAndUnhide(id);
+
+    if (!review) {
+      throw new Error("Review not found");
+    }
+
+    return toReviewDTO(review);
+  }
+
+  async deleteReview(id: string): Promise<ReviewDTO> {
+    const review = await this._reviewRepository.deleteReview(id);
+
+    if (!review) {
+      throw new Error("Review not found");
+    }
+    return toReviewDTO(review);
+  }
+
+  async getWallet(
+    page: number,
+    limit: number
+  ): Promise<{
+    wallet: Partial<IWallet>;
+    total: number;
+    totalPages: number;
+    transactions: ITransaction[];
+  }> {
+    const { wallet, total, totalPages, transactions } =
+      await this._walletRepository.findWalletOfAdmin(page, limit);
+    return { wallet, total, totalPages, transactions };
+  }
+
+  async getComplaints(
+    page: number,
+    limit: number,
+    search: string,
+    filter: string
+  ): Promise<{
+    complaints: ComplaintDTO[];
+    total: number;
+    totalPages: number;
+  }> {
+    const { complaints, total, totalPages } =
+      await this._complaintRepository.getComplaints(
+        page,
+        limit,
+        search,
+        filter
+      );
+    return { complaints: toComplaintDTOList(complaints), total, totalPages };
+  }
+
+  async responseComplaint(
+    id: string,
+    status: string,
+    response: string
+  ): Promise<ComplaintDTO> {
+    if (!response || response.trim() == "") {
+      throw new Error("Please fill in a response");
+    }
+
+    const complaint = await this._complaintRepository.updateComplaint(
+      id,
+      status,
+      response
+    );
+    if(!complaint){
+      throw new Error("failed to respond to complaint")
+    }
+    return toComplaintDTO(complaint);
+  }
+
+  async getCourseStats(): Promise<{ title: string; enrolledCount: number }[]> {
+    return await this._courseRepository.getCourseStats();
+  }
+
+  async getIncomeStats(): Promise<{ month: string; revenue: number }[]> {
+    return await this._walletRepository.getIncomeStats();
+  }
+
+  async getSpecificCourseForAdmin(courseId: string): Promise<CourseDTO> {
+    const course = await this._courseRepository.findCourseById(courseId);
+
+    if (!course) {
+      throw new Error("Course not found");
+    }
+
+    return toCourseDTO(course);
+  }
+
+  async getNotifications(userId: string): Promise<NotificationDTO[]> {
+    const notification =
+      await this._notificationRepository.getAllNotifications(userId);
+    return toNotificationDTOList(notification);
+  }
+
+  async markAsRead(notificationId: string): Promise<NotificationDTO> {
+    const notification =
+      await this._notificationRepository.updateNotification(notificationId);
+      if(!notification){
+        throw new Error("failed to update notification")
+      }
+    return toNotificationDTO(notification);
+  }
+
+  async getSpecificTutor(id: string): Promise<InstructorDTO> {
+    const tutor = await this._instructorRepository.findById(id);
+
+    if (!tutor) {
+      throw new Error("Tutor not found");
+    }
+
+    return toInstructorDTO(tutor);
+  }
+
+  async getUserActivityReport(
+    page: number,
+    limit: number,
+    search?: string
+  ): Promise<UserActivityReportDTO> {
+    return await this._adminRepository.getUserActivityReport(
+      page,
+      limit,
+      search
+    );
+  }
+
+  async getCoursePerformanceReport(
+    page: number,
+    limit: number,
+    search?: string
+  ): Promise<CoursePerformanceReportDTO> {
+    return await this._adminRepository.getCoursePerformanceReport(
+      page,
+      limit,
+      search
+    );
+  }
+}

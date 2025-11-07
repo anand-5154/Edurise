@@ -1,0 +1,54 @@
+import { InstructorAuthController } from "../controllers/implementations/instructorAuth.controller";
+import { AdminRepository } from "../repository/implementations/admin.repository";
+import { AuthRepository } from "../repository/implementations/auth.repository";
+import { CategoryRepository } from "../repository/implementations/category.repository";
+import { CourseRepository } from "../repository/implementations/course.repository";
+import { InstructorAuth } from "../repository/implementations/instructorAuth.repository";
+import { LiveSessionRepository } from "../repository/implementations/livesession.repository";
+import { MessageRepository } from "../repository/implementations/message.repository";
+import { NotificationRepository } from "../repository/implementations/notification.repository";
+import { OrderRepository } from "../repository/implementations/order.repository";
+import { OtpRepository } from "../repository/implementations/otp.repository";
+import { QuizRepository } from "../repository/implementations/quiz.repository";
+import { ReviewRepository } from "../repository/implementations/review.repository";
+import { WalletRepository } from "../repository/implementations/wallet.repository";
+import { ProgressRepository } from "../repository/implementations/progress.repository";
+import { InstructorAuthSerivce } from "../services/implementation/IinstructorAuth.services";
+import { LiveSessionService } from "../services/implementation/Ilivesession.services";
+import { MessageService } from "../services/implementation/Imessage.service";
+
+const instructorAuthRepository = new InstructorAuth();
+const userRepository = new AuthRepository();
+const adminRepository = new AdminRepository();
+const otpRepository = new OtpRepository();
+const courseRepository = new CourseRepository();
+const reviewRepository = new ReviewRepository();
+const orderRepository = new OrderRepository();
+const walletRepository = new WalletRepository();
+const quizRepository=new QuizRepository()
+const categoryRepository = new CategoryRepository();
+const messageRepository=new MessageRepository()
+const liveSessionRepository=new LiveSessionRepository()
+const notificationRepository = new NotificationRepository();
+const progressRepository = new ProgressRepository();
+const messageService=new MessageService(messageRepository)
+const livesessionService=new LiveSessionService(liveSessionRepository,courseRepository)
+const instructorAuthService = new InstructorAuthSerivce(
+  instructorAuthRepository,
+  otpRepository,
+  adminRepository,
+  userRepository,
+  courseRepository,
+  reviewRepository,
+  orderRepository,
+  walletRepository,
+  categoryRepository,
+  notificationRepository,
+  quizRepository,
+  progressRepository
+);
+export const instructorAuthController = new InstructorAuthController(
+  instructorAuthService,
+  messageService,
+  livesessionService
+);

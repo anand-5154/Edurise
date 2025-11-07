@@ -7,84 +7,57 @@ import morgan from "morgan"
 import http from "http"
 import Database from "./config/db.config"
 import passport from "./config/passport.config"
+import { initSocket } from "./socket/socket"
 import nocache from "nocache"
-import session from "express-session"
-import { httpStatus } from "./constants/statusCodes"
-
-import paymentRoutes from './routes/payment.routes';
 
 dotenv.config()
 
-const app = express()
-
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}))
+const app=express()
 
 app.use(passport.initialize())
-app.use(passport.session())
 
 import userRoutes from "./routes/user.routes"
 import instructorRoutes from "./routes/instructor.routes"
 import adminRoutes from "./routes/admin.routes"
+import courseRoutes from "./routes/course.routes"
+import reviewRoutes from "./routes/review.routes"
+import chatRoutes from "./routes/chat.routes"
+import messageRoutes from "./routes/message.routes"
 
 Database()
 
+// Essential middleware first - parsing and security
+app.use(express.json())
+app.use(express.urlencoded({extended:true}))
+app.use(cookieParser())
+app.use(nocache())
+app.use(helmet())
+
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
-const server = http.createServer(app)
-
-app.use(nocache())
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      styleSrcElem: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-      fontSrcElem: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-      imgSrc: ["'self'", 'data:', 'https://*.googleusercontent.com'],
-      connectSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      frameSrc: ["'self'"],
-    },
-  },
-}))
+// Logging
 app.use(morgan("dev"))
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-app.use(cookieParser())
 
-app.use("/api/users", userRoutes)
-app.use("/instructors", instructorRoutes)
-app.use("/admin", adminRoutes)
+// Create server and init socket
+const server=http.createServer(app)
+initSocket(server)
 
-app.use('/api/payment', paymentRoutes);
+// Mount routes
+app.use("/api/users",userRoutes)
+app.use("/api/users/reviews",reviewRoutes)
+app.use("/api/instructors",instructorRoutes)
+app.use("/api/admin",adminRoutes)
+app.use("/api/instructors/courses", courseRoutes)
+app.use("/api/chats",chatRoutes)
+app.use("/api/messages",messageRoutes)
 
-server.listen(process.env.PORT, () => {
-  console.log(`Server started on port ${process.env.PORT}`)
+
+server.listen(process.env.PORT,()=>{
+    console.log(`server started`)
 })
-
-// Global error handler
-app.use((err: any, req: any, res: any, next: any) => {
-  console.error('Global error handler:', err);
-  res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-    message: 'Internal Server Error',
-    error: err && err.message ? err.message : err
-  });
-});

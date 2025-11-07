@@ -1,89 +1,110 @@
-import { IInstructor } from '../../models/interfaces/IInstructorAuth-interface';
-import { IInstructorAuthRepository } from '../interfaces/IInstructorAuthRepository-interface';
-import { IInstructorAuth } from '../interfaces/IInstructorAuth-interface';
+import { IInstructor } from "../../models/interfaces/IinstructorAuth.interface";
+import { IInstructorAuthRepository } from "../interfaces/IinstructorAuth.interface";
 import Instructor from "../../models/implementations/instructorModel";
-import { BaseRepository } from './base.repository';
+import Course from "../../models/implementations/courseModel";
+import { BaseRepository } from "../base.repository";
+import Order from "../../models/implementations/orderModel";
 
-export class InstructorAuth extends BaseRepository<IInstructor> implements IInstructorAuthRepository, IInstructorAuth {
+interface Dashboard {
+  totalUsers: number;
+  totalCourses: number;
+}
+
+export class InstructorAuth
+  extends BaseRepository<IInstructor>
+  implements IInstructorAuthRepository
+{
   constructor() {
     super(Instructor);
   }
+  async createInstructor(userData: Partial<IInstructor>): Promise<IInstructor> {
+    const instructor = await this.model.create(userData);
+    return instructor;
+  }
 
-    async create(instructorData: Partial<IInstructor>): Promise<IInstructor> {
-    return this.model.create(instructorData);
-    }
+  async findByEmail(email: string): Promise<IInstructor | null> {
+    const instructor = await this.model.findOne({ email });
+    return instructor;
+  }
 
-    async createInstructor(userData: Partial<IInstructor>): Promise<IInstructor> {
-    return this.model.create(userData);
-    }
+  async findById(id: string): Promise<IInstructor | null> {
+    const instructor = await this.model.findById(id);
+    return instructor;
+  }
 
-    async findByEmail(email: string): Promise<IInstructor | null> {
-    return this.model.findOne({email});
-    }
+  async findInstructorsByIds(ids: string[]): Promise<IInstructor[]> {
+    return Instructor.find({ _id: { $in: ids } });
+  }
 
-    async updateTutor(email: string, isVerified: boolean): Promise<IInstructor | null> {
-    return this.model.findOneAndUpdate({email}, {isVerified: true}, {new: true});
-    }
+  async updateTutor(
+    email: string,
+    isVerified: boolean,
+    isRejected: boolean,
+    accountStatus: string
+  ): Promise<IInstructor | null> {
+    const tutor = await this.model.findOneAndUpdate(
+      { email },
+      { isVerified, accountStatus, isRejected },
+      { new: true }
+    );
+    return tutor;
+  }
 
-    async deleteTutor(email: string): Promise<IInstructor | null> {
-    return this.model.findOneAndDelete({email});
-    }
+  async deleteTutor(email: string): Promise<IInstructor | null> {
+    return await this.model.findOneAndDelete({ email });
+  }
 
-    async getPendingInstructors(): Promise<IInstructor[]> {
-    return this.model.find({ isVerified: false });
-    }
+  async findForProfile(email: string): Promise<IInstructor | null> {
+    const instructor = await this.model.findOne({ email }).select("-password");
+    return instructor;
+  }
 
-    async verifyInstructor(instructorId: string): Promise<void> {
-    const instructor = await this.model.findById(instructorId);
-        if (!instructor) {
-            throw new Error('Instructor not found');
-        }
-    const updatedInstructor = await this.model.findByIdAndUpdate(
-            instructorId,
-            {
-                $set: {
-                    isVerified: true,
-                    accountStatus: 'approved'
-                }
-            },
-            { new: true }
-        );
-        if (!updatedInstructor) {
-            throw new Error('Failed to update instructor status');
-        }
-    }
+  async updateInstructorByEmail(
+    email: string,
+    updateFields: Partial<{
+      name: string;
+      phone: string;
+      profilePicture: string;
+      education: string;
+      yearsOfExperience: number;
+      title: string;
+    }>
+  ): Promise<IInstructor | null> {
+    const updatedInstructor = await this.model.findOneAndUpdate(
+      { email },
+      { $set: updateFields },
+      { new: true }
+    );
+    return updatedInstructor;
+  }
 
-    async rejectInstructor(instructorId: string): Promise<void> {
-    const instructor = await this.model.findById(instructorId);
-        if (!instructor) {
-            throw new Error('Instructor not found');
-        }
-    await this.model.findByIdAndUpdate(instructorId, {
-            accountStatus: 'rejected'
-        });
-    }
+  async updateInstructor(
+    email: string,
+    updatedData: Partial<IInstructor>
+  ): Promise<IInstructor | null> {
+    return await Instructor.findOneAndUpdate(
+      { email },
+      { $set: updatedData },
+      { new: true }
+    );
+  }
 
-    async updatePassword(email: string, hashedPassword: string): Promise<IInstructor | null> {
-    return this.model.findOneAndUpdate(
-            { email },
-            { password: hashedPassword },
-            { new: true }
-        );
-    }
+  async getDashboard(instructorId: string): Promise<Dashboard | null> {
+    const courses = await Course.find({ instructor: instructorId }).select(
+      "_id"
+    );
+    const courseIds = courses.map((course) => course._id);
 
-    async findById(id: string) {
-    return this.model.findById(id).select('-password -__v');
-    }
+    const totalCourses = courseIds.length;
 
-    async updateById(id: string, update: { name?: string; username?: string; phone?: string; profilePicture?: string; education?: string[]; yearsOfExperience?: string[] }) {
-    return this.model.findByIdAndUpdate(id, update, { new: true }).select('-password -__v');
-    }
+    const enrolledUserIds = await Order.distinct("userId", {
+      courseId: { $in: courseIds },
+    });
 
-    async updatePasswordById(id: string, hashedPassword: string) {
-    return this.model.findByIdAndUpdate(id, { password: hashedPassword }, { new: true });
-    }
-
-    async updateRefreshTokenById(id: string, refreshToken: string): Promise<void> {
-    await this.model.findByIdAndUpdate(id, { refreshToken });
-    }
+    const totalUsers = enrolledUserIds.length;
+    return {
+      totalCourses,
+      totalUsers,
+    };
+  }
 }

@@ -1,7 +1,6 @@
 import mongoose,{Schema} from "mongoose"
-import { IUser } from "../interfaces/IAuth-interface";
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import {IUser} from "../interfaces/auth.interface"
+
 
 const userSchema:Schema<IUser>=new Schema({
     name:{
@@ -28,47 +27,26 @@ const userSchema:Schema<IUser>=new Schema({
         type:String,
         sparse:true,
     },
+    isBlocked:{
+        type:Boolean,
+        default:false
+    },
     profilePicture:{
-        type:String,
+        type:String
     },
     role:{
         type:String,
         enum:["user","admin","instructor"],
         default:"user"
     },
-    blocked: { type: Boolean, default: false },
-    refreshToken: {
-        type: String,
-    }
 },
     {
         timestamps:true
     }
 )
 
-// Add methods to the schema
-userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
-    try {
-        return await bcrypt.compare(candidatePassword, this.password);
-    } catch (error) {
-        throw error;
-    }
-};
+const userModel = mongoose.model<IUser>("User",userSchema)
+export default userModel
 
-userSchema.methods.generateAccessToken = function(): string {
-    return jwt.sign(
-        { id: this._id, email: this.email, role: this.role },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '15m' }
-    );
-};
+export type userDocument=IUser
 
-userSchema.methods.generateRefreshToken = function(): string {
-    return jwt.sign(
-        { id: this._id },
-        process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
-        { expiresIn: '7d' }
-    );
-};
-
-export default mongoose.model<IUser>("User",userSchema)

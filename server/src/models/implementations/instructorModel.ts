@@ -1,83 +1,77 @@
-import mongoose, { Schema } from "mongoose";
-import { IInstructor } from "../interfaces/IInstructorAuth-interface";
+import mongoose,{Schema} from "mongoose";
+import { IInstructor } from "../interfaces/IinstructorAuth.interface";
 
-const instructorSchema: Schema<IInstructor> = new Schema({
-    name: {
-        type: String,
-        required: true,
-        trim: true
+const instructorSchema:Schema<IInstructor>=new Schema({
+    name:{
+        type:String,
+        required:true,
+        trim:true
     },
-    username: {
-        type: String,
-        required: true,
-        trim: true
+    username:{
+        type:String,
+        required:true,
+        trim:true
     },
-    email: {
-        type: String,
-        required: true,
-        trim: true,
-        unique: true
+    email:{
+        type:String,
+        required:true,
+        trim:true
     },
-    password: {
-        type: String,
-        required: true,
-        trim: true
+    password:{
+        type:String,
+        requirede:true,
+        trim:true
     },
-    phone: {
-        type: String,
-        required: true,
-        trim: true
+    phone:{
+        type:String,
+        required:true,
+        trim:true
     },
-    title: {
-        type: String,
-        required: true,
-        trim: true
+    title:{
+        type:String,
+        required:true,
+        trim:true
     },
-    education: {
-        type: [String],
-        required: true,
-        trim: true
+    profilePicture:{
+        type:String
     },
-    yearsOfExperience: {
-        type: [String],
-        required: true,
-        trim: true
+    isBlocked:{
+        type:Boolean,
+        default:false
     },
-    documentUrl: {
-        type: String,
-        required: false
+    yearsOfExperience:{
+        type:Number,
+        required:true,
     },
-    role: {
-        type: String,
-        enum: ["user", "instructor", "admin"],
-        default: "instructor"
+    resume:{
+        type:String,
     },
-    accountStatus: {
-        type: String,
-        enum: ["pending", "approved", "rejected"],
-        default: "pending"
+    role:{
+        type:String,
+        enum:["user","instructor","admin"],
+        default:"instructor"
     },
-    isVerified: {
-        type: Boolean,
-        default: false
+    education:{
+        type:String,
+        required:true,
+        trim:true
     },
-    blocked: {
-        type: Boolean,
-        default: false
+    accountStatus:{
+        type:String,
+        enum:["pending","blocked","active","rejected"],
+        default:"pending"
     },
-    profilePicture: {
-        type: String,
-        required: false
+    isRejected:{
+        type:Boolean,
     },
-    refreshToken: {
-        type: String,
+    isVerified:{
+        type:Boolean,
+        default:false   
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
+},
+    {
+        timestamps:true
     }
-}, {
-    timestamps: true
-});
+)
 
-export default mongoose.model<IInstructor>("Instructor", instructorSchema);
+export default mongoose.model<IInstructor>("Instructor",instructorSchema)

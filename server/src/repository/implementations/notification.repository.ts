@@ -1,21 +1,17 @@
-import { INotificationRepository } from '../interfaces/notification.interface';
-import Notification, { INotification } from '../../models/implementations/notificationModel';
-import { BaseRepository } from './base.repository';
+import { INotification } from "../../models/interfaces/Inotification.interface";
+import { INotificationRepository } from "../interfaces/Inotification.interface";
+import Notification from "../../models/implementations/notificationModel"
 
-export class NotificationRepository extends BaseRepository<INotification> implements INotificationRepository {
-  constructor() {
-    super(Notification);
-  }
+export class NotificationRepository implements INotificationRepository{
+    async createNotification(data:{receiverId:string,receiverModel:"User"|"Instructor"|"Admin",message:string}): Promise<INotification | null> {
+        return await Notification.create(data)
+    }
 
-  async createNotification(notification: Partial<INotification>): Promise<INotification> {
-    return this.create(notification);
-  }
+    async getAllNotifications(userId: string): Promise<INotification[]> {
+        return await Notification.find({ receiverId:userId }).sort({ createdAt: -1 })
+    }
 
-  async getUserNotifications(userId: string): Promise<INotification[]> {
-    return this.model.find({ user: userId }).sort({ createdAt: -1 });
-  }
-
-  async markAsRead(notificationId: string): Promise<INotification | null> {
-    return this.model.findByIdAndUpdate(notificationId, { read: true }, { new: true });
-  }
-} 
+    async updateNotification(notificationId: string): Promise<INotification|null> {
+        return await Notification.findByIdAndUpdate(notificationId,{$set:{isRead:true}},{new:true})
+    }
+}

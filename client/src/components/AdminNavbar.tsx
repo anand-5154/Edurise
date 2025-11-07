@@ -1,67 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  GraduationCap, 
-  DollarSign, 
-  BookOpen, 
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  DollarSign,
+  BookOpen,
   FolderOpen,
-  ChevronDown,
   Settings,
   LogOut,
-  Bell,
-  Home,
-  UserPlus,
-  Tag
-} from 'lucide-react';
-import { successToast } from './Toast';
-import apiService from '../services/apiService';
+  Edit2,
+  Activity,
+  BarChart3
+} from "lucide-react";
+import { MdReport } from "react-icons/md";
+import { ADMIN_ROUTES } from "../constants/routes.constants";
+import { useContext } from "react";
+// import NotificationContext from "../context/NotificationContext";
+import { adminLogoutS } from "../services/admin.services";
 
 const AdminNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [adminData, setAdminData] = useState<{ name?: string }>({});
+  // const notificationContext=useContext(NotificationContext)
+  // if(!notificationContext){
+  //   return
+  // }
+  // const {unreadCount}=notificationContext
 
-  useEffect(() => {
-    const token = localStorage.getItem('adminAccessToken');
-    if (!token) {
-      localStorage.clear();
-      window.location.href = '/admin/login';
-    } else {
-      // Fetch admin profile
-      apiService.get('/admin/profile')
-        .then(res => setAdminData(res.data))
-        .catch(() => setAdminData({ name: 'Admin' }));
+  const handleLogout = async () => {
+    try {
+      await adminLogoutS();
+      localStorage.removeItem("adminEmail");
+      localStorage.removeItem("adminToken");
+      navigate(ADMIN_ROUTES.LOGIN);
+    } catch (err) {
+      console.log(err);
     }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.clear(); // Clear all data
-    successToast('Logged out successfully');
-    window.location.href = '/admin/login';
   };
 
   const navItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Users', path: '/admin/users', icon: Users },
-    { name: 'Instructors', path: '/admin/instructors', icon: BookOpen },
-    { name: 'Courses', path: '/admin/courses', icon: BookOpen },
-    { name: 'Categories', path: '/admin/categories', icon: FolderOpen },
+    { name: "Dashboard", icon: LayoutDashboard },
+    { name: "Users", icon: Users },
+    { name: "Tutors", icon: GraduationCap },
+    { name: "Earnings", icon: DollarSign },
+    { name: "Courses", icon: BookOpen },
+    { name: "Category", icon: FolderOpen },
+    { name: "Reviews", icon: Edit2 },
+    { name: "Complaints", icon: MdReport },
+    { name: "User Activity", icon: Activity, customRoute: ADMIN_ROUTES.USER_ACTIVITY_REPORT },
+    { name: "Course Performance", icon: BarChart3, customRoute: ADMIN_ROUTES.COURSE_PERFORMANCE_REPORT }
   ];
 
-  const reportItems = [
-    { name: 'User Activity Report', path: '/admin/reports/user-activity', icon: Users },
-    { name: 'Course Performance Report', path: '/admin/reports/course-performance', icon: GraduationCap },
-  ];
+  const getRoutePath = (item: typeof navItems[number]) => {
+    if (item.customRoute) return item.customRoute;
+    return `${ADMIN_ROUTES.BASE}/${item.name.toLowerCase()}`;
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <div className="w-64 bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 shadow-2xl border-r border-blue-700/30">
+      <div className="w-64 bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 shadow-2xl border-r border-purple-700/30">
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-center p-6 border-b border-blue-700/30">
+          <div className="flex items-center justify-center p-6 border-b border-purple-700/30">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">A</span>
               </div>
               <span className="text-white font-bold text-xl">Admin Panel</span>
@@ -72,15 +73,15 @@ const AdminNavbar = () => {
             <div className="space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                const isActive = location.pathname === getRoutePath(item);
                 return (
                   <Link
                     key={item.name}
-                    to={item.path}
+                    to={getRoutePath(item)}
                     className={`${
-                        isActive
-                        ? 'bg-blue-700 bg-opacity-70 text-white shadow-lg border-r-4 border-blue-400'
-                        : 'text-blue-100 hover:bg-blue-700 hover:bg-opacity-50 hover:text-white'
+                      isActive
+                        ? "bg-purple-700 bg-opacity-70 text-white shadow-lg border-r-4 border-pink-400"
+                        : "text-purple-100 hover:bg-purple-700 hover:bg-opacity-50 hover:text-white"
                     } w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group`}
                   >
                     <Icon className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
@@ -89,63 +90,25 @@ const AdminNavbar = () => {
                 );
               })}
             </div>
-            <div className="mt-8">
-              <p className="text-blue-200 text-xs font-semibold mb-2 ml-2">Reports</p>
-              <div className="space-y-2">
-                {reportItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      className={`${
-                        isActive
-                        ? 'bg-blue-700 bg-opacity-70 text-white shadow-lg border-r-4 border-blue-400'
-                        : 'text-blue-100 hover:bg-blue-700 hover:bg-opacity-50 hover:text-white'
-                      } w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group`}
-                    >
-                      <Icon className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
-                      <span>{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="mt-8">
-              <Link to="/admin/learning-paths" className="text-blue-600 font-semibold hover:underline">
-                Learning Paths
-              </Link>
-            </div>
           </nav>
 
-          <div className="border-t border-blue-700/30 p-4">
+          <div className="border-t border-purple-700/30 p-4">
             <Link
-              to="/admin/settings"
-              className="w-full flex items-center space-x-3 px-4 py-3 text-blue-100 hover:text-white hover:bg-blue-700 hover:bg-opacity-50 rounded-lg transition-all duration-200 mb-2"
-            >
-              <Settings className="w-5 h-5" />
-              <span>Settings</span>
-            </Link>
-
-            <Link
-              to="/admin/profile"
-              className="bg-blue-800 bg-opacity-50 hover:bg-opacity-70 rounded-lg p-3 mb-3 block transition-all duration-200"
+              to="/admin/notifications"
+              className="w-full flex items-center space-x-3 px-4 py-3 text-purple-100 hover:text-white hover:bg-purple-700 hover:bg-opacity-50 rounded-lg transition-all duration-200 mb-2"
             >
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-medium">
-                    {adminData.name ? adminData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'A'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-white font-medium text-sm">{adminData.name || 'Admin'}</p>
-                  <p className="text-blue-200 text-xs">Administrator</p>
-                </div>
+                <Settings className="w-5 h-5" />
+                <span>Notifications</span>
               </div>
+              {/* {unreadCount > 0 && (
+                <span className="inline-flex items-center justify-center text-xs font-semibold text-white bg-red-500 rounded-full h-5 w-5">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )} */}
             </Link>
 
-            <button 
+            <button
               onClick={handleLogout}
               className="w-full flex items-center space-x-3 px-4 py-3 text-red-300 hover:text-red-200 hover:bg-red-900 hover:bg-opacity-50 rounded-lg transition-all duration-200"
             >
