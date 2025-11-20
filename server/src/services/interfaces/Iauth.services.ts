@@ -4,6 +4,7 @@ import { NotificationDTO } from "../../DTO/notification.dto";
 import { OrderDTO } from "../../DTO/order.dto";
 import { ProgressDTO } from "../../DTO/progress.dto";
 import { UserDTO } from "../../DTO/user.dto";
+import { WalletDTO, TransactionDTO } from "../../DTO/wallet.dto";
 import { IUser } from "../../models/interfaces/auth.interface";
 import { IComplaint } from "../../models/interfaces/complaint.interface";
 import { IQuiz } from "../../models/interfaces/Iquiz.interface";
@@ -46,7 +47,8 @@ export interface IAuthService {
   getCoursesService(page:number,limit:number,search:string,category:string,minPrice:number,maxPrice:number): Promise<{courses:CourseDTO[],total:number,totalPages:number}>;
   findCourseByIdService(courseId: string,userId:string): Promise<{ course: CourseDTO; isEnrolled: boolean }>;
   createOrder(courseId: string, userId: string): Promise<OrderDTO>;
-  cancelOrder(orderId:string):Promise<OrderDTO>
+  purchaseCourseWithWallet(courseId: string, userId: string): Promise<OrderDTO>;
+  cancelOrder(orderId:string, userId: string):Promise<OrderDTO>
   retryPayment(orderId:string):Promise<OrderDTO>
   verifyPayment({
     razorpay_order_id,
@@ -66,6 +68,7 @@ export interface IAuthService {
   markAsRead(notificationId:string):Promise<NotificationDTO>
   submitComplaint(data:Partial<IComplaint>):Promise<IComplaint|null>
   getPurchases(userId:string,page:number,limit:number):Promise<{ purchases: IPurchase[]; total: number; totalPages: number }>
+  getUserWallet(userId:string,page:number,limit:number):Promise<{wallet: WalletDTO; transactions: TransactionDTO[]; total:number; totalPages:number}>
   changePassword(userId:string,oldPassword:string,newPassword:string,confirmPassword:string):Promise<void>
   getSpecificInstructor(instructorId:string):Promise<InstructorDTO>
   getCertificates(userId:string,page:number,limit:number):Promise<{_id:string,user:string,course:string,courseTitle:string,certificateUrl:string,issuedDate:Date}[]>

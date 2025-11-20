@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { IReviewService } from "../../services/interfaces/review.interface";
+import { IReviewService } from "../../services/interfaces/Ireview.interface";
 import { IReviewController } from "../interfaces/Ireview.interface";
 import { httpStatus } from "../../constants/statusCodes";
 import { UserRequest } from "../../types/express";

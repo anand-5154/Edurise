@@ -16,7 +16,7 @@ const Enrollments = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const pageParam = parseInt(searchParams.get("page") || "1");
   const [currentPage, setCurrentPage] = useState<number>(pageParam);
-  const itemsPerPage = 7;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   const [searchQuery, setSearchQuery] = useState("");
   const [debounce, setDebounce] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
@@ -163,6 +163,12 @@ const Enrollments = () => {
         currentPage={currentPage}
         onPageChange={handlePageChange}
         totalPages={totalPages}
+        limit={itemsPerPage}
+        onLimitChange={limit => {
+          setItemsPerPage(limit);
+          setCurrentPage(1);
+          setSearchParams({ page: "1" });
+        }}
       />
     </div>
   );

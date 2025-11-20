@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { User, Bell, Menu, X } from "lucide-react";
+import { User, Menu, X, Bell } from "lucide-react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import logo from "../assets/learnAt-removebg-preview.png";
+import logo from "../assets/Edurise-logo.png";
 import { USER_ROUTES } from "../constants/routes.constants";
 import { useAuth } from "../hooks/useAuth";
 import { socket } from "../services/socket.service";
@@ -63,8 +63,8 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <img
             src={logo}
-            alt="Learn At Logo"
-            className="h-8 sm:h-10 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
+            alt="EduRise Logo"
+            className="h-32 sm:h-28 object-contain cursor-pointer transition-transform duration-300 hover:scale-105"
             onClick={() => {
               const token = localStorage.getItem("usersToken");
               navigate(token ? USER_ROUTES.HOME : USER_ROUTES.ROOT);
@@ -119,6 +119,28 @@ export default function Navbar() {
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
             )}
+          </Link>
+
+          <Link
+            to={USER_ROUTES.LEARNING_PATHS}
+            className={`transition-colors duration-200 px-2 py-1 rounded ${
+              currentPath === USER_ROUTES.LEARNING_PATHS
+                ? "text-white font-semibold"
+                : "hover:text-white/80"
+            }`}
+          >
+            Learning Paths
+          </Link>
+
+          <Link
+            to={USER_ROUTES.WALLET}
+            className={`transition-colors duration-200 px-2 py-1 rounded ${
+              currentPath === USER_ROUTES.WALLET
+                ? "text-white font-semibold"
+                : "hover:text-white/80"
+            }`}
+          >
+            Wallet
           </Link>
         </div>
 
@@ -194,6 +216,22 @@ export default function Navbar() {
             onClick={() => setIsMenuOpen(false)}
           >
             Chats
+          </Link>
+
+          <Link
+            to={USER_ROUTES.LEARNING_PATHS}
+            className="hover:text-white/80"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Learning Paths
+          </Link>
+
+          <Link
+            to={USER_ROUTES.WALLET}
+            className="hover:text-white/80"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Wallet
           </Link>
 
           {token && (

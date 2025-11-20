@@ -11,4 +11,11 @@ export const toOrderDTO = (order: IOrder): OrderDTO => ({
   amount: order.amount ?? 0,
   status: order.status,
   currency: order.currency ?? "INR",
+  paymentMethod: order.paymentMethod ?? "razorpay",
+  walletDebitTransactionId: order.walletDebitTransactionId,
+  refundTransactionId: order.refundTransactionId,
+  refundAmount: order.refundAmount,
+  cancelledAt: order.cancelledAt,
+  createdAt: order.createdAt,
+  updatedAt: order.updatedAt,
 });

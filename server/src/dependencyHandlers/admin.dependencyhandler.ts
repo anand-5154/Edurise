@@ -8,7 +8,7 @@ import { InstructorAuth } from "../repository/implementations/instructorAuth.rep
 import { NotificationRepository } from "../repository/implementations/notification.repository";
 import { ReviewRepository } from "../repository/implementations/review.repository";
 import { WalletRepository } from "../repository/implementations/wallet.repository";
-import { AdminService } from "../services/implementation/Iadmin.sevices";
+import { AdminService } from "../services/implementation/admin.sevices";
 
 const adminRepository = new AdminRepository();
 const instructorRepository = new InstructorAuth();

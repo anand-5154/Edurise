@@ -12,7 +12,7 @@ const Courses: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const pageParam = parseInt(searchParams.get("page") || "1");
   const [currentPage, setCurrentPage] = useState<number>(pageParam);
-  const itemsPerPage = 3;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [debounce, setDebounce] = useState<string>("");
@@ -156,6 +156,12 @@ const Courses: React.FC = () => {
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={handlePageChange}
+              limit={itemsPerPage}
+              onLimitChange={limit => {
+                setItemsPerPage(limit);
+                setCurrentPage(1);
+                setSearchParams({ page: "1" });
+              }}
             />
           )}
         </>

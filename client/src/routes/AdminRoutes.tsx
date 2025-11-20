@@ -13,8 +13,8 @@ import Earnings from "../components/Earnings";
 import ComplaintPage from "../components/ComplaintPage";
 import AdminCourseView from "../pages/Admin/AdminCourseView";
 import TutorDetail from "../pages/Admin/AdminTutorVIew";
-// import { NotificationProvider } from "../context/NotificationContext";
-// import AdminNotification from "../pages/Admin/AdminNotification";
+import { NotificationProvider } from "../context/NotificationContext";
+import AdminNotification from "../pages/Admin/AdminNotification";
 import { ADMIN_ROUTES } from "../constants/routes.constants";
 import UserActivityReport from "../pages/Admin/UserActivityReport";
 import CoursePerformanceReport from "../pages/Admin/CoursePerformanceReport";
@@ -26,9 +26,9 @@ const AdminRoutes = () => {
       <Route path={ADMIN_ROUTES.BASE} element={<AdminPrivateRoute />}>
         <Route
           element={
-            // <NotificationProvider>
+            <NotificationProvider>
             <AdminNavbar />
-            // </NotificationProvider>
+             </NotificationProvider>
           }
         >
           <Route path={ADMIN_ROUTES.DASHBOARD} element={<AdminDashboard />} />
@@ -42,7 +42,7 @@ const AdminRoutes = () => {
           <Route path={ADMIN_ROUTES.COMPLAINTS} element={<ComplaintPage />} />
           <Route path={ADMIN_ROUTES.EARNINGS} element={<Earnings role="admin" />} />
           <Route path={ADMIN_ROUTES.COURSE_VIEW()} element={<AdminCourseView />} />
-          {/* <Route path={ADMIN_ROUTES.NOTIFICATIONS} element={<AdminNotification/>}/> */}
+          <Route path={ADMIN_ROUTES.NOTIFICATIONS} element={<AdminNotification/>}/>
           <Route path={ADMIN_ROUTES.USER_ACTIVITY_REPORT} element={<UserActivityReport />} />
           <Route path={ADMIN_ROUTES.COURSE_PERFORMANCE_REPORT} element={<CoursePerformanceReport />} />
         </Route>

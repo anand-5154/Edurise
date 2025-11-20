@@ -27,10 +27,10 @@ const CoursePerformanceReport: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [debounce, setDebounce] = useState<string>("");
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
   const pageParam = parseInt(searchParams.get("page") || "1");
   const [currentPage, setCurrentPage] = useState<number>(pageParam);
-  const itemsPerPage = 10;
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -331,15 +331,19 @@ const CoursePerformanceReport: React.FC = () => {
             </div>
 
             {/* Pagination */}
-            {report.totalPages > 1 && (
-              <div className="mt-6">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={report.totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </div>
-            )}
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={report.totalPages}
+                onPageChange={handlePageChange}
+                limit={itemsPerPage}
+                onLimitChange={limit => {
+                  setItemsPerPage(limit);
+                  setCurrentPage(1);
+                  setSearchParams({ page: "1" });
+                }}
+              />
+            </div>
           </>
         )}
       </div>

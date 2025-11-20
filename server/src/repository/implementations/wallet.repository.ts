@@ -11,13 +11,18 @@ export class WalletRepository implements IWalletRepository {
     amount,
     courseId,
     description,
+    courseTitle,
   }: {
-    ownerType: "instructors" | "admin";
-    ownerId: string | Types.ObjectId;
+    ownerType: "user" | "instructors" | "admin";
+    ownerId?: string | Types.ObjectId;
     amount: number;
     courseId: string;
     description: string;
+    courseTitle?: string;
   }): Promise<IWallet | null> {
+    if (ownerType !== "admin" && !ownerId) {
+      throw new Error("ownerId is required for non-admin wallets");
+    }
     const query =
       ownerType === "admin" ? { ownerType } : { ownerType, ownerId };
     return await Wallet.findOneAndUpdate(
@@ -30,10 +35,52 @@ export class WalletRepository implements IWalletRepository {
             amount,
             courseId,
             description,
+            courseTitle,
           },
         },
       },
       { upsert: true, new: true }
+    );
+  }
+
+  async debitWallet({
+    ownerType,
+    ownerId,
+    amount,
+    courseId,
+    description,
+    courseTitle,
+  }: {
+    ownerType: "user" | "instructors" | "admin";
+    ownerId?: string | Types.ObjectId;
+    amount: number;
+    courseId: string;
+    description: string;
+    courseTitle?: string;
+  }): Promise<IWallet | null> {
+    if (ownerType !== "admin" && !ownerId) {
+      throw new Error("ownerId is required for non-admin wallets");
+    }
+    const query =
+      ownerType === "admin" ? { ownerType } : { ownerType, ownerId };
+    const wallet = await Wallet.findOne(query);
+    if (!wallet) throw new Error("Wallet not found");
+    if (wallet.balance < amount) throw new Error("Insufficient funds");
+    return await Wallet.findOneAndUpdate(
+      query,
+      {
+        $inc: { balance: -amount },
+        $push: {
+          transactions: {
+            type: "debit",
+            amount,
+            courseId,
+            description,
+            courseTitle,
+          },
+        },
+      },
+      { new: true }
     );
   }
 
@@ -94,6 +141,25 @@ export class WalletRepository implements IWalletRepository {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(skip, skip + limit);
 
+    return {
+      wallet: { balance: wallet?.balance || 0 },
+      transactions: paginatedTransactions,
+      total,
+      totalPages,
+    };
+  }
+
+  async findWalletOfUser(userId: string, page: number, limit: number): Promise<{wallet: Partial<IWallet>, total: number, totalPages: number, transactions: ITransaction[]}> {
+    const skip = (page - 1) * limit;
+    const wallet = await Wallet.findOne({ ownerType: "user", ownerId: userId })
+      .select("balance transactions")
+      .lean();
+    const allTransactions = wallet?.transactions || [];
+    const total = allTransactions.length;
+    const totalPages = Math.ceil(total / limit);
+    const paginatedTransactions = allTransactions
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(skip, skip + limit);
     return {
       wallet: { balance: wallet?.balance || 0 },
       transactions: paginatedTransactions,

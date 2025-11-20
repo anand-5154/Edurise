@@ -3,7 +3,7 @@ import cloudinary from "../../config/cloudinary.config";
 // import { toCertificateDTO } from "../../Mappers/certificate.mapper";
 import { ICertificate } from "../../models/interfaces/certificate.interface";
 import { ICertificateReopsitory } from "../../repository/interfaces/Icertificate.interface";
-import { ICertificateService } from "../interfaces/certificate.interface";
+import { ICertificateService } from "../interfaces/Icertificate.interface";
 
 export class CertificateService implements ICertificateService {
   constructor(private _certificateRepository: ICertificateReopsitory) {}

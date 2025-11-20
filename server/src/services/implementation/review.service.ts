@@ -1,7 +1,7 @@
 import { ReviewDTO } from "../../DTO/review.dto";
 import { toReviewDTOList } from "../../Mappers/review.mapper";
 import { IReviewRepository } from "../../repository/interfaces/Ireview.interface";
-import { IReviewService } from "../interfaces/review.interface";
+import { IReviewService } from "../interfaces/Ireview.interface";
 
 
 export class ReviewService implements IReviewService{

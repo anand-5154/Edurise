@@ -1,4 +1,4 @@
-import { IInstructorAuthService } from "../interfaces/instructorAuth.services";
+import { IInstructorAuthService } from "../interfaces/IinstructorAuth.services";
 import { IInstructorAuthRepository } from "../../repository/interfaces/IinstructorAuth.interface";
 import { IInstructor } from "../../models/interfaces/IinstructorAuth.interface";
 import bcrypt from "bcrypt";

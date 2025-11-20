@@ -7,6 +7,11 @@ export default function generateOtp(){
         upperCaseAlphabets:false,
         specialChars:false
     })
+    if (process.env.NODE_ENV !== "production") {
+        console.log("[OTP]", otp)
+    } else {
+        console.log("[OTP SENT]", otp)
+    }
     return otp
 }
 

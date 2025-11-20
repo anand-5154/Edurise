@@ -4,7 +4,7 @@ import type { ICourse } from "../types/course.types";
 import type { DashboardData } from "../types/admin.types";
 import type { AdminLoginResponse } from "../types/admin.types";
 import type { CourseViewType } from "../types/user.types";
-// import type { INotification } from "../context/NotificationContext";
+import type { INotification } from "../context/NotificationContext";
 import { createApi } from "./newApiService";
 
 const api = createApi("admin");

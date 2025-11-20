@@ -110,6 +110,11 @@ router.get(
   authRole(["user"]),
   authController.getPurchases.bind(authController)
 );
+router.get(
+  "/wallet",
+  authRole(["user"]),
+  authController.getWallet.bind(authController)
+);
 router.get("/purchased-courses",authRole(["user"]),authController.purchasedCourses.bind(authController))
 router.post("/change-password",authRole(["user"]),authController.changePassword.bind(authController))
 router.get("/courseinstructor/:instructorId",authRole(["user"]),authController.courseInstructorView.bind(authController))
@@ -121,6 +126,51 @@ router.post("/submitquiz/:quizId",authRole(["user"]),authController.submitQuiz.b
 router.post("/create-certificate",uploadCertificate.single("certificate"),authController.createCertificate.bind(authController))
 router.get("/live/token",authRole(["user"]),authController.getSessionToken.bind(authController))
 router.get("/course/live/:courseId",authRole(["user"]),authController.getLiveSessionByCourseId.bind(authController))
+router.get(
+  "/learning-paths",
+  authRole(["user"]),
+  authController.getLearningPaths.bind(authController)
+);
+router.get(
+  "/learning-paths/catalog",
+  authRole(["user"]),
+  authController.getLearningPathCatalog.bind(authController)
+);
+router.get(
+  "/learning-paths/:pathId",
+  authRole(["user"]),
+  authController.getLearningPath.bind(authController)
+);
+router.post(
+  "/learning-paths",
+  authRole(["user"]),
+  authController.createLearningPath.bind(authController)
+);
+router.patch(
+  "/learning-paths/:pathId",
+  authRole(["user"]),
+  authController.updateLearningPath.bind(authController)
+);
+router.delete(
+  "/learning-paths/:pathId",
+  authRole(["user"]),
+  authController.deleteLearningPath.bind(authController)
+);
+router.post(
+  "/learning-paths/:pathId/courses",
+  authRole(["user"]),
+  authController.addCourseToLearningPath.bind(authController)
+);
+router.delete(
+  "/learning-paths/:pathId/courses/:courseId",
+  authRole(["user"]),
+  authController.removeCourseFromLearningPath.bind(authController)
+);
+router.post(
+  "/learning-paths/:pathId/reorder",
+  authRole(["user"]),
+  authController.reorderLearningPathCourses.bind(authController)
+);
 router.post("/logout", authController.logOut.bind(authController));
 
 export default router;

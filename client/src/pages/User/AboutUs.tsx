@@ -61,7 +61,7 @@ const AboutPage = () => {
     {
       year: "2020",
       title: "The Beginning",
-      description: "Learn At was founded with a vision to democratize education.",
+      description: "EduRise was founded with a vision to democratize education.",
     },
     {
       year: "2022",
@@ -87,10 +87,10 @@ const AboutPage = () => {
       <section className="pt-24 pb-12">
         <div className="container text-center">
           <h1 className="h1 soft-in">
-            About <span style={{ color: "var(--primary-600)" }}>Learn At</span>
+            About <span style={{ color: "var(--primary-600)" }}>EduRise</span>
           </h1>
           <p className="mt-3 text-[color:var(--text-600)] max-w-2xl mx-auto">
-            Empowering minds and transforming futures through accessible, world-class education.
+            Rise higher with learning that’s simple, smart, and accessible to everyone.
           </p>
         </div>
       </section>
@@ -106,13 +106,13 @@ const AboutPage = () => {
             </div>
             <div className="grid gap-4">
               <p>
-                Learn At was born from a simple yet powerful vision: education should be a right, not a privilege. Traditional barriers—cost, location, accessibility—often block talent from reaching full potential.
+                EduRise is a modern e-learning platform designed to make high-quality education accessible to everyone.
               </p>
               <p>
-                What started as a passion project is now a thriving platform serving thousands worldwide. We partner with industry experts to create courses that don’t just teach — they transform.
+                We combine easy-to-use learning tools, expert-driven content, and smart features that support real skill development.
               </p>
               <p>
-                Today, Learn At stands as a beacon for anyone seeking to learn, grow, and succeed. Whether you’re starting a career, advancing, or exploring a passion, we’re here every step.
+                Our mission is to help learners grow with confidence and rise towards a better future through continuous learning.
               </p>
             </div>
           </div>
@@ -203,7 +203,7 @@ const AboutPage = () => {
       </section>
 
       <footer className="py-6 text-center text-sm text-[color:var(--text-600)] border-t" style={{ borderColor: "var(--stroke-200)" }}>
-        © {new Date().getFullYear()} Learn At. All rights reserved.
+        © {new Date().getFullYear()} EduRise. All rights reserved.
       </footer>
     </div>
   );

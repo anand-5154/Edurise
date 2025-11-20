@@ -100,6 +100,12 @@ export class CourseRepository
     return course;
   }
 
+  async findPurchasedCoursesByUser(userId: string): Promise<ICourse[]> {
+    return this.model
+      .find({ enrolledStudents: userId })
+      .select("title thumbnail price isActive");
+  }
+
   async findCoursesByInstructor(
     instructorId: string,
     page: number,
@@ -128,6 +134,15 @@ export class CourseRepository
   ): Promise<ICourse | null> {
     return await Course.findByIdAndUpdate(courseId, {
       $addToSet: { enrolledStudents: userId },
+    });
+  }
+
+  async removeEnrolledUser(
+    courseId: string,
+    userId: string
+  ): Promise<ICourse | null> {
+    return await Course.findByIdAndUpdate(courseId, {
+      $pull: { enrolledStudents: userId },
     });
   }
 

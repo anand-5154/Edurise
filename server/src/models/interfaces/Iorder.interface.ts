@@ -8,7 +8,13 @@ export interface IOrder {
   razorpayPaymentId?: string;
   razorpaySignature?: string;
   amount: number;
-  status: "created" | "paid" | "failed";
+  status: "created" | "paid" | "failed" | "cancelled";
   currency?:string
+  paymentMethod?: "razorpay" | "wallet";
+  walletDebitTransactionId?: string;
+  refundTransactionId?: string;
+  refundAmount?: number;
+  cancelledAt?: Date;
   createdAt?: Date;
+  updatedAt?: Date;
 }

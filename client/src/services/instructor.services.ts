@@ -4,7 +4,7 @@ import type {
   VerifyInstructor,
 } from "../types/instructor.types";
 import type { CourseData } from "../types/course.types";
-// import type { INotification } from "../context/NotificationContext";
+import type { INotification } from "../context/NotificationContext";
 import type { Category } from "../types/category.types";
 import type { User } from "../types/user.types";
 import { createApi } from "./newApiService";

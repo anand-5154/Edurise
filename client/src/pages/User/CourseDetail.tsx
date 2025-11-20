@@ -12,6 +12,7 @@ import {
   getReviewsS,
   getSpecificCourseS,
   getUserCourseOrderS,
+  getUserWalletS,
   postReviewS,
   RetryPaymentS,
   verifyResS,
@@ -39,11 +40,14 @@ const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [userReview, setUserReview] = useState({ rating: 0, text: "" });
-  const [isCompleted, setIsCompleted] = useState<boolean>();
-  const [previousOrder, setPreviousOrder] = useState<string>("");
+  const [previousOrder, setPreviousOrder] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInstructorModalOpen, setIsInstructorModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "curriculum" | "instructor" | "reviews">("overview");
+  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "wallet">("razorpay");
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletLoading, setWalletLoading] = useState<boolean>(false);
 
   const toggleModule = (index: number) => {
     setOpenModules((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
@@ -65,21 +69,42 @@ const CourseDetail: React.FC = () => {
 
   const handlePayment = async () => {
     if (!course?._id) return;
-    
-    // Validate Razorpay key is configured
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_ID;
-    if (!razorpayKey) {
-      errorToast("Razorpay configuration error: VITE_RAZORPAY_ID is missing. Please configure it in your .env file.");
+
+    if (paymentMethod === "wallet") {
+      const coursePrice = course.price || 0;
+      if (walletBalance < coursePrice) {
+        errorToast("Insufficient wallet balance");
+        return;
+      }
+      try {
+        const { data } = await CreateOrderS(course._id, "wallet");
+        successToast(data.message || "Enrolled successfully using wallet balance.");
+        setIsEnrolled(true);
+        await fetchCourse();
+        await fetchWalletBalance();
+      } catch (err: unknown) {
+        const message = (err as any)?.response?.data?.message || "Unable to process wallet payment";
+        errorToast(message);
+      }
       return;
     }
-    
+
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_ID;
+    if (!razorpayKey) {
+      errorToast(
+        "Razorpay configuration error: VITE_RAZORPAY_ID is missing. Please configure it in your .env file."
+      );
+      return;
+    }
+
     const isScriptLoaded = await loadRazorpayScript();
     if (!isScriptLoaded) {
       errorToast("Razorpay SDK failed to load.");
       return;
     }
     try {
-      const { data: order } = await CreateOrderS(course._id);
+      const { data } = await CreateOrderS(course._id, "razorpay");
+      const { order } = data;
       const options: any = {
         key: razorpayKey,
         amount: order.amount,
@@ -96,6 +121,7 @@ const CourseDetail: React.FC = () => {
           if (verifyRes.data.success) {
             successToast("Payment Successful! You are enrolled.");
             setIsEnrolled(true);
+            await fetchWalletBalance();
           } else {
             errorToast("Payment verification failed.");
           }
@@ -113,7 +139,6 @@ const CourseDetail: React.FC = () => {
       const razor = new window.Razorpay(options);
       razor.open();
     } catch (err: unknown) {
-      // prefer server-provided message when available
       const message = (err as any)?.response?.data?.message || "Course is purchased or payment in progress";
       errorToast(message);
     }
@@ -153,6 +178,7 @@ const CourseDetail: React.FC = () => {
             if (verifyRes.data.success) {
               successToast("Payment Successful! You are enrolled.");
               setIsEnrolled(true);
+              await fetchWalletBalance();
             } else {
               errorToast("Payment verification failed.");
             }
@@ -222,6 +248,22 @@ const CourseDetail: React.FC = () => {
   useEffect(() => {
     fetchCourse();
   }, [fetchCourse]);
+
+  const fetchWalletBalance = useCallback(async () => {
+    try {
+      setWalletLoading(true);
+      const res = await getUserWalletS(1, 5);
+      setWalletBalance(res.data.wallet.balance ?? 0);
+    } catch {
+      setWalletBalance(0);
+    } finally {
+      setWalletLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWalletBalance();
+  }, [fetchWalletBalance]);
 
   const fetchInstructor = async () => {
     try {
@@ -568,6 +610,58 @@ const CourseDetail: React.FC = () => {
               <div className="text-center text-slate-900 mb-6">
                 <div className="text-3xl font-bold text-slate-900 mb-2">₹{course.price}</div>
               </div>
+
+              {!isEnrolled && !previousOrder && (
+                <div className="mb-4 space-y-3">
+                  <p className="text-sm font-semibold text-slate-700">Payment Method</p>
+                  <label
+                    className={`flex items-center justify-between gap-3 px-3 py-2 border rounded-lg transition ${
+                      paymentMethod === "razorpay"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="payment-method"
+                        value="razorpay"
+                        checked={paymentMethod === "razorpay"}
+                        onChange={() => setPaymentMethod("razorpay")}
+                      />
+                      <span className="text-sm text-slate-800">Pay with Razorpay (UPI / Card)</span>
+                    </div>
+                  </label>
+                  <label
+                    className={`flex items-center justify-between gap-3 px-3 py-2 border rounded-lg transition ${
+                      paymentMethod === "wallet"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-200"
+                    } ${walletBalance < (course.price || 0) ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="payment-method"
+                        value="wallet"
+                        checked={paymentMethod === "wallet"}
+                        onChange={() => setPaymentMethod("wallet")}
+                        disabled={walletBalance < (course.price || 0)}
+                      />
+                      <span className="text-sm text-slate-800">Pay with Wallet</span>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-900">₹{walletBalance.toFixed(2)}</span>
+                  </label>
+                  {walletLoading && (
+                    <p className="text-xs text-slate-500">Refreshing wallet...</p>
+                  )}
+                  {paymentMethod === "wallet" && walletBalance < (course.price || 0) && (
+                    <p className="text-xs text-red-600">
+                      Wallet balance is insufficient. Cancel recent purchases to add funds.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {isEnrolled ? (
                 <button

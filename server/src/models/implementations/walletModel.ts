@@ -5,7 +5,7 @@ const walletSchema: Schema<IWallet> = new Schema(
   {
     ownerType: {
       type: String,
-      enum: ["instructors", "admin"],
+      enum: ["user", "instructors", "admin"],
       required: true,
     },
     ownerId: {

@@ -6,9 +6,15 @@ export interface IOrder {
   razorpayPaymentId?: string;
   razorpaySignature?: string;
   amount: number;
-  status: "created" | "paid" | "failed";
-  currency?:string
-  createdAt?: Date;
+  status: "created" | "paid" | "failed" | "cancelled";
+  currency?: string;
+  paymentMethod?: "razorpay" | "wallet";
+  walletDebitTransactionId?: string;
+  refundTransactionId?: string;
+  refundAmount?: number;
+  cancelledAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface VerifyResponse {

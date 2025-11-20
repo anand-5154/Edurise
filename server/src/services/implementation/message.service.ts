@@ -1,7 +1,7 @@
 import { UpdateResult } from "mongoose";
 import { IMessage } from "../../models/interfaces/IChat.interface";
 import { IMessageRepository } from "../../repository/interfaces/Imessage.interface";
-import { IMessageService } from "../interfaces/message.interface";
+import { IMessageService } from "../interfaces/Imessage.interface";
 import { MessageDTO } from "../../DTO/message.dto";
 import { toMessageDTO, toMessageDTOList } from "../../Mappers/message.mapper";
 

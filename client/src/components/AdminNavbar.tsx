@@ -15,17 +15,17 @@ import {
 import { MdReport } from "react-icons/md";
 import { ADMIN_ROUTES } from "../constants/routes.constants";
 import { useContext } from "react";
-// import NotificationContext from "../context/NotificationContext";
+import NotificationContext from "../context/NotificationContext";
 import { adminLogoutS } from "../services/admin.services";
 
 const AdminNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // const notificationContext=useContext(NotificationContext)
-  // if(!notificationContext){
-  //   return
-  // }
-  // const {unreadCount}=notificationContext
+  const notificationContext=useContext(NotificationContext)
+  if(!notificationContext){
+    return
+  }
+  const {unreadCount}=notificationContext
 
   const handleLogout = async () => {
     try {
@@ -58,11 +58,11 @@ const AdminNavbar = () => {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <div className="w-64 bg-gradient-to-b from-purple-900 via-purple-800 to-indigo-900 shadow-2xl border-r border-purple-700/30">
+      <div className="w-64 bg-gradient-to-b from-neutral-900 via-neutral-800 to-neutral-900 shadow-2xl border-r border-neutral-700/30">
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-center p-6 border-b border-purple-700/30">
+          <div className="flex items-center justify-center p-6 border-b border-neutral-700/30">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-neutral-500 to-neutral-400 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">A</span>
               </div>
               <span className="text-white font-bold text-xl">Admin Panel</span>
@@ -80,8 +80,8 @@ const AdminNavbar = () => {
                     to={getRoutePath(item)}
                     className={`${
                       isActive
-                        ? "bg-purple-700 bg-opacity-70 text-white shadow-lg border-r-4 border-pink-400"
-                        : "text-purple-100 hover:bg-purple-700 hover:bg-opacity-50 hover:text-white"
+                        ? "bg-neutral-700 bg-opacity-70 text-white shadow-lg border-r-4 border-neutral-400"
+                        : "text-white hover:bg-neutral-700 hover:bg-opacity-50"
                     } w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group`}
                   >
                     <Icon className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
@@ -95,17 +95,17 @@ const AdminNavbar = () => {
           <div className="border-t border-purple-700/30 p-4">
             <Link
               to="/admin/notifications"
-              className="w-full flex items-center space-x-3 px-4 py-3 text-purple-100 hover:text-white hover:bg-purple-700 hover:bg-opacity-50 rounded-lg transition-all duration-200 mb-2"
+              className="w-full flex items-center space-x-3 px-4 py-3 text-white hover:bg-neutral-700 hover:bg-opacity-50 rounded-lg transition-all duration-200 mb-2"
             >
               <div className="flex items-center space-x-3">
                 <Settings className="w-5 h-5" />
                 <span>Notifications</span>
               </div>
-              {/* {unreadCount > 0 && (
+              {unreadCount > 0 && (
                 <span className="inline-flex items-center justify-center text-xs font-semibold text-white bg-red-500 rounded-full h-5 w-5">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
-              )} */}
+              )}
             </Link>
 
             <button

@@ -47,6 +47,10 @@ export class ProgressRepository implements IProgressRepository {
     );
   }
 
+  async removeProgress(userId: string, courseId: string): Promise<void> {
+    await Progress.deleteOne({ userId, courseId });
+  }
+
   async CheckStatus(
     userId: string,
     courseId: string

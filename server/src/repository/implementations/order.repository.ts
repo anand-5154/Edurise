@@ -12,6 +12,9 @@ export interface IPurchase {
   amount: number;
   purchasedAt: Date;
   status: string;
+  paymentMethod?: "razorpay" | "wallet";
+  refundAmount?: number;
+  cancelledAt?: Date | null;
 }
 
 export interface PurchasedCourse {
@@ -37,20 +40,27 @@ export class OrderRepository implements IOrderRepository {
       razorpayOrderId: plainOrder.razorpayOrderId?.toString(),
       razorpayPaymentId: plainOrder.razorpayPaymentId?.toString(),
       razorpaySignature: plainOrder.razorpaySignature?.toString(),
+      currency: plainOrder.currency,
+      paymentMethod: plainOrder.paymentMethod,
+      walletDebitTransactionId: plainOrder.walletDebitTransactionId,
+      refundTransactionId: plainOrder.refundTransactionId,
+      refundAmount: plainOrder.refundAmount,
+      cancelledAt: plainOrder.cancelledAt,
       createdAt: plainOrder.createdAt,
+      updatedAt: plainOrder.updatedAt,
     };
   }
 
   async getOrderById(orderId: string): Promise<IOrder | null> {
-    return await Order.findById(orderId);
+    return await Order.findById(orderId).lean();
   }
 
-  async cancelOrder(orderId: string, status: string): Promise<IOrder | null> {
+  async cancelOrder(orderId: string, status: string, extra: Partial<IOrder> = {}): Promise<IOrder | null> {
     return await Order.findByIdAndUpdate(
       orderId,
-      { status: status },
+      { status: status, ...extra, updatedAt: new Date() },
       { new: true }
-    );
+    ).lean();
   }
 
   async updateOrderForRetry(
@@ -67,24 +77,29 @@ export class OrderRepository implements IOrderRepository {
         },
       },
       { new: true }
-    );
+    ).lean();
   }
 
   async getPreviousOrder(
     userId: string,
     courseId: string
   ): Promise<IOrder | null> {
-    return await Order.findOne({ userId, courseId });
+    return await Order.findOne({ userId, courseId }).lean();
   }
 
   async markOrderAsPaid(
-    orderId: string | Types.ObjectId
+    orderId: string | Types.ObjectId,
+    update: Partial<IOrder> = {}
   ): Promise<IOrder | null> {
-    return await Order.findByIdAndUpdate(orderId, { status: "paid" });
+    return await Order.findByIdAndUpdate(
+      orderId,
+      { status: "paid", ...update, updatedAt: new Date() },
+      { new: true }
+    ).lean();
   }
 
   async getOrderByRazorpayId(razorpayOrderId: string): Promise<IOrder | null> {
-    return await Order.findOne({ razorpayOrderId });
+    return await Order.findOne({ razorpayOrderId }).lean();
   }
 
   async isUserEnrolled(courseId: string, userId: string): Promise<boolean> {
@@ -215,8 +230,11 @@ export class OrderRepository implements IOrderRepository {
       _id: order._id.toString(),
       course: order.courseId,
       amount: order.amount ?? 0,
-      purchasedAt: order.createdAt,
+      purchasedAt: order.status === "paid" && order.updatedAt ? order.updatedAt : order.createdAt,
       status: order.status,
+      paymentMethod: order.paymentMethod as "razorpay" | "wallet",
+      refundAmount: order.refundAmount,
+      cancelledAt: order.cancelledAt ?? null,
     }));
 
     return {

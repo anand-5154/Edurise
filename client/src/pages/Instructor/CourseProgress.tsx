@@ -25,7 +25,7 @@ const CourseProgress: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(pageParam);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -282,6 +282,12 @@ const CourseProgress: React.FC = () => {
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={handlePageChange}
+                  limit={itemsPerPage}
+                  onLimitChange={limit => {
+                    setItemsPerPage(limit);
+                    setCurrentPage(1);
+                    setSearchParams({ page: "1" });
+                  }}
                 />
               </div>
             )}

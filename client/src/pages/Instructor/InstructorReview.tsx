@@ -19,12 +19,12 @@ const InstructorReview = () => {
   const pageParam = parseInt(searchParams.get("page") || "1");
   const [currentPage, setCurrentPage] = useState<number>(pageParam);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const itemsPerPage=1;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const res = await instructorReviews(currentPage,itemsPerPage,ratingFilter)
+        const res = await instructorReviews(currentPage, itemsPerPage, ratingFilter);
         setReviews(res.data.reviews);
         setTotalPages(res.data.totalPages)
       } catch (err) {
@@ -33,7 +33,7 @@ const InstructorReview = () => {
     };
 
     fetchReviews();
-  }, [currentPage,itemsPerPage,ratingFilter]);
+  }, [currentPage, itemsPerPage, ratingFilter]);
 
   useEffect(() => {
     const pageParam = parseInt(searchParams.get("page") || "1");
@@ -155,6 +155,12 @@ const InstructorReview = () => {
           currentPage={currentPage}
           onPageChange={handlePageChange}
           totalPages={totalPages}
+          limit={itemsPerPage}
+          onLimitChange={limit => {
+            setItemsPerPage(limit);
+            setCurrentPage(1);
+            setSearchParams({ page: "1" });
+          }}
         />
     </div>
   );

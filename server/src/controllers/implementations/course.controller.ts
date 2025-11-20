@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { ICourseService } from "../../services/interfaces/course.services";
+import { ICourseService } from "../../services/interfaces/Icourse.services";
 import { httpStatus } from "../../constants/statusCodes";
 import { ICourseController } from "../interfaces/Icourse.interfaces";
-import { LectureFileWithMeta } from "../../services/implementation/Icourse.services";
+import { LectureFileWithMeta } from "../../services/implementation/course.services";
 import {
   IChapter,
   IModule,

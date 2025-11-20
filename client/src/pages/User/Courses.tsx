@@ -17,7 +17,7 @@ const Courses: React.FC = () => {
   const pageParam = Number.parseInt(searchParams.get("page") || "1");
   const [currentPage, setCurrentPage] = useState<number>(pageParam);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const itemsPerPage = 2;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
   const [total, setTotal] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -227,7 +227,17 @@ const Courses: React.FC = () => {
         </div>
 
         <div className="mt-8">
-          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            limit={itemsPerPage}
+            onLimitChange={limit => {
+              setItemsPerPage(limit);
+              setCurrentPage(1);
+              setSearchParams({ page: "1" });
+            }}
+          />
         </div>
       </div>
     </div>

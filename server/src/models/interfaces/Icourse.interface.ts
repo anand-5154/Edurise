@@ -1,5 +1,5 @@
 import { Document, Types } from "mongoose";
-import { LectureFileWithMeta } from "../../services/implementation/Icourse.services";
+import { LectureFileWithMeta } from "../../services/implementation/course.services";
 
 export interface ICourse extends Document {
   _id: string;

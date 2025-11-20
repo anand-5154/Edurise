@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import image from "../../assets/learnAt-removebg-preview.png";
+import image from "../../assets/Edurise-logo.png";
 import { errorToast, successToast } from "../../components/Toast";
 import { FcGoogle } from "react-icons/fc";
 import { userRegisterS } from "../../services/user.services";

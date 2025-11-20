@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import { BiChat } from "react-icons/bi";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-// import InstructorContext from "../context/InstructorContext";
+import InstructorContext from "../context/InstructorContext";
 import { INSTRUCTOR_ROUTES } from "../constants/routes.constants";
-// import NotificationContext from "../context/NotificationContext";
+import NotificationContext from "../context/NotificationContext";
 import { useAuth } from "../hooks/useAuth";
 import { socket } from "../services/socket.service";
 import {
@@ -25,10 +25,9 @@ import { MdQuiz } from "react-icons/md";
 const InstructorNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // const context = useContext(InstructorContext);
+  const context = useContext(InstructorContext);
   const { authUser } = useAuth();
   const [readCount, setUnreadCount] = useState(0);
-  // const notificationContext = useContext(NotificationContext);
 
   useEffect(() => {
     const fetchUnread = async () => {
@@ -51,13 +50,8 @@ const InstructorNavbar = () => {
     };
   }, [authUser?._id, authUser?.role]);
 
-  // REMOVE context based checks and destructure (since context is commented out)
-  // if (!context) return <div>Loading...</div>;
-  // const { unreadCount } = notificationContext;
-  // const { instructor } = context;
-  // Instead, make instructor a dummy placeholder, or get from elsewhere if needed
-  const instructor = authUser; // fallback (update as needed based on your actual data)
-  // use readCount from state only
+  if (!context) return <div>Loading...</div>;
+  const instructor = context?.instructor ?? authUser;
 
   const handleLogout = async () => {
     try {
@@ -70,7 +64,7 @@ const InstructorNavbar = () => {
     }
   };
 
-  const getRoutePath = (itemName) => `${INSTRUCTOR_ROUTES.BASE}/${itemName.toLowerCase()}`;
+  const getRoutePath = (itemName: string) => `${INSTRUCTOR_ROUTES.BASE}/${itemName.toLowerCase()}`;
 
   const navItems = [
     { name: "Dashboard", icon: LayoutDashboard },
@@ -85,11 +79,11 @@ const InstructorNavbar = () => {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <div className="w-64 bg-gradient-to-b from-blue-900 via-blue-800 to-indigo-900 shadow-2xl border-r border-blue-700/30 flex flex-col justify-between">
+      <div className="w-64 bg-gradient-to-b from-neutral-900 via-neutral-800 to-neutral-900 shadow-2xl border-r border-neutral-700/30 flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-center p-6 border-b border-blue-700/30">
+          <div className="flex items-center justify-center p-6 border-b border-neutral-700/30">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-neutral-500 to-neutral-400 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">I</span>
               </div>
               <span className="text-white font-bold text-xl">
@@ -108,8 +102,8 @@ const InstructorNavbar = () => {
                     key={item.name}
                     to={getRoutePath(item.name)}
                     className={`${isActive
-                      ? "bg-blue-700 bg-opacity-70 text-white shadow-lg border-r-4 border-cyan-400"
-                      : "text-blue-100 hover:bg-blue-700 hover:bg-opacity-50 hover:text-white"} w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group`}
+                      ? "bg-neutral-700 bg-opacity-70 text-white shadow-lg border-r-4 border-neutral-400"
+                      : "text-white hover:bg-neutral-700 hover:bg-opacity-50"} w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group`}
                   >
                     <Icon className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
                     <span>{item.name}</span>
@@ -123,10 +117,10 @@ const InstructorNavbar = () => {
           </nav>
         </div>
 
-        <div className="border-t border-blue-700/30 p-6">
+        <div className="border-t border-neutral-700/30 p-6">
           <Link
             to={INSTRUCTOR_ROUTES.NOTIFICATIONS}
-            className="w-full flex items-center justify-between px-4 py-2 text-blue-100 hover:text-white hover:bg-blue-700 hover:bg-opacity-50 rounded-lg transition-all duration-200 mb-2"
+            className="w-full flex items-center justify-between px-4 py-2 text-white hover:bg-neutral-700 hover:bg-opacity-50 rounded-lg transition-all duration-200 mb-2"
           >
             <div className="flex items-center space-x-3">
               <Settings className="w-5 h-5" />
@@ -142,7 +136,7 @@ const InstructorNavbar = () => {
 
           <button
             onClick={() => navigate(INSTRUCTOR_ROUTES.PROFILE)}
-            className="bg-blue-800 bg-opacity-50 hover:bg-opacity-70 rounded-lg p-3 mb-2 block transition-all duration-200 w-full"
+            className="bg-neutral-800 bg-opacity-50 hover:bg-opacity-70 rounded-lg p-3 mb-2 block transition-all duration-200 w-full"
           >
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-full overflow-hidden">

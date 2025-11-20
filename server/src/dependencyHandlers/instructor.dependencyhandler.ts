@@ -13,9 +13,9 @@ import { QuizRepository } from "../repository/implementations/quiz.repository";
 import { ReviewRepository } from "../repository/implementations/review.repository";
 import { WalletRepository } from "../repository/implementations/wallet.repository";
 import { ProgressRepository } from "../repository/implementations/progress.repository";
-import { InstructorAuthSerivce } from "../services/implementation/IinstructorAuth.services";
-import { LiveSessionService } from "../services/implementation/Ilivesession.services";
-import { MessageService } from "../services/implementation/Imessage.service";
+import { InstructorAuthSerivce } from "../services/implementation/instructorAuth.services";
+import { LiveSessionService } from "../services/implementation/livesession.services";
+import { MessageService } from "../services/implementation/message.service";
 
 const instructorAuthRepository = new InstructorAuth();
 const userRepository = new AuthRepository();

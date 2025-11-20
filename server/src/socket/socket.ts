@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { Server as HTTPServer } from "http";
-import { MessageService } from "../services/implementation/Imessage.service";
+import { MessageService } from "../services/implementation/message.service";
 import { MessageRepository } from "../repository/implementations/message.repository";
 import Chat from "../models/implementations/chatModel";
 import dotenv from "dotenv";

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { IMessageService } from "../../services/interfaces/message.interface";
+import { IMessageService } from "../../services/interfaces/Imessage.interface";
 import { IMessageController } from "../interfaces/Imessage.interface";
 import { httpStatus } from "../../constants/statusCodes";
 import cloudinary from "../../config/cloudinary.config";

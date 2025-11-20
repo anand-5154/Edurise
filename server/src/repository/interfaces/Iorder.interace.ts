@@ -9,8 +9,8 @@ import {
 export interface IOrderRepository {
   createOrderRecord(orderData: IOrder): Promise<IOrder | null>;
   getOrderById(orderId:string):Promise<IOrder|null>
-  cancelOrder(orderId:string,status:string):Promise<IOrder|null>
-  markOrderAsPaid(orderId: string|Types.ObjectId): Promise<IOrder | null>;
+  cancelOrder(orderId:string,status:string,extra?:Partial<IOrder>):Promise<IOrder|null>
+  markOrderAsPaid(orderId: string|Types.ObjectId, update?: Partial<IOrder>): Promise<IOrder | null>;
   getPreviousOrder(userId:string,courseId:string):Promise<IOrder|null>
   getOrderByRazorpayId(razorpayOrderId: string): Promise<IOrder | null>;
   updateOrderForRetry(orderId:string,newRazorpayOrderId:string):Promise<IOrder|null>

@@ -1,7 +1,7 @@
 import { ChatDTO } from "../../DTO/chat.dto";
 import { toChatDTO, toChatDTOList } from "../../Mappers/chat.mapper";
 import { IChatRepository } from "../../repository/interfaces/Ichat.interface";
-import { IChatService } from "../interfaces/chat.services";
+import { IChatService } from "../interfaces/Ichat.services";
 
 export class ChatService implements IChatService {
   constructor(private _chatRepository: IChatRepository) {}

@@ -26,7 +26,7 @@ const UserHomePage = () => {
       <section className="pt-28 pb-16">
         <div className="container grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <h1 className="h1 soft-in">Empower Your Future With <span style={{ color: "var(--primary-600)" }}>Learn At</span></h1>
+            <h1 className="h1 soft-in">Empower Your Future With <span style={{ color: "var(--primary-600)" }}>EduRise</span></h1>
             <p className="mt-3 text-[color:var(--text-600)] max-w-xl">Discover top-notch courses, track your progress, and earn certificates. Flexible, affordable, and powerful learning — all in one platform.</p>
             <div className="mt-6 flex gap-3">
               <button onClick={() => navigate("/users/courses")} className="btn btn-primary">Explore Courses</button>
@@ -77,7 +77,7 @@ const UserHomePage = () => {
       </section>
 
       <footer className="py-6 text-center text-sm text-[color:var(--text-600)] border-t" style={{ borderColor: "var(--stroke-200)" }}>
-        © {new Date().getFullYear()} Learn At. All rights reserved.
+        © {new Date().getFullYear()} EduRise. All rights reserved.
       </footer>
     </div>
   );

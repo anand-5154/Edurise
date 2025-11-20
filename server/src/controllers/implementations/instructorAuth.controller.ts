@@ -1,14 +1,14 @@
 import { IInstructorController } from "../interfaces/IinstructorAuth.interface";
-import { IInstructorAuthService } from "../../services/interfaces/instructorAuth.services";
+import { IInstructorAuthService } from "../../services/interfaces/IinstructorAuth.services";
 import { Request, Response } from "express";
 import { httpStatus } from "../../constants/statusCodes";
 import fs from "fs";
 import cloudinary from "../../config/cloudinary.config";
 import jwt from "jsonwebtoken";
 import { generateToken } from "../../utils/jwt";
-import { IMessageService } from "../../services/interfaces/message.interface";
+import { IMessageService } from "../../services/interfaces/Imessage.interface";
 import { IQuiz, IQuestion } from "../../models/interfaces/Iquiz.interface";
-import { ILiveSessionService } from "../../services/interfaces/livesession.interface";
+import { ILiveSessionService } from "../../services/interfaces/Ilivesession.interface";
 
 export class InstructorAuthController implements IInstructorController {
   constructor(
@@ -298,7 +298,7 @@ export class InstructorAuthController implements IInstructorController {
 
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 6;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
       const { courses, total, totalPages } =
         await this._instructorAuthService.getCoursesByInstructor(
@@ -352,7 +352,7 @@ export class InstructorAuthController implements IInstructorController {
   async getInstructorReviews(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const rating = req.query.rating
         ? parseInt(req.query.rating as string)
         : 0;
@@ -382,7 +382,7 @@ export class InstructorAuthController implements IInstructorController {
   async getEnrollments(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
       const status = (req.query.status as string) || "";
       const instructorId = req.instructor?.id;
@@ -413,7 +413,7 @@ export class InstructorAuthController implements IInstructorController {
   async getWallet(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const instructorId = req.instructor?.id;
 
       if (!instructorId) {
@@ -797,7 +797,7 @@ export class InstructorAuthController implements IInstructorController {
       const instructorId = req.instructor?.id;
       const courseId = req.params.courseId;
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
 
       if (!instructorId) {

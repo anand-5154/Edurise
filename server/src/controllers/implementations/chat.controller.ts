@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { IChatService } from "../../services/interfaces/chat.services";
+import { IChatService } from "../../services/interfaces/Ichat.services";
 import { IChatController } from "../interfaces/Ichat.interface";
 import { httpStatus } from "../../constants/statusCodes";
 

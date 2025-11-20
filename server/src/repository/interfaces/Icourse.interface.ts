@@ -16,6 +16,7 @@ export interface ICourseRepository {
     maxPrice: number
   ): Promise<{ courses: ICourse[]; total: number; totalPages: number }>;
   findCourseById(courseId: string): Promise<ICourse | null>;
+  findPurchasedCoursesByUser(userId: string): Promise<ICourse[]>;
   findCoursesByInstructor(
     instructorId: string,
     page: number,
@@ -31,6 +32,7 @@ export interface ICourseRepository {
     courseData: Partial<ICourse>
   ): Promise<ICourse | null>;
   addEnrolledUser(courseId: string, userId: string): Promise<ICourse | null>;
+  removeEnrolledUser(courseId: string, userId: string): Promise<ICourse | null>;
   getCourseStats(): Promise<{ title: string; enrolledCount: number }[]>;
   findByPurchasedUser(userId: string): Promise<string[]>;
   getUsersByInstructor(instructorId: string): Promise<string[]>;

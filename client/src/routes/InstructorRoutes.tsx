@@ -22,8 +22,8 @@ import InstructorChatWindow from "../pages/Instructor/InstructorChatWindow";
 import InstructorVideoCall from "../pages/Instructor/InstructorVideoCall";
 import { CallProvider } from "../context/CallContext";
 import CallModal from "../components/CallModal";
-// import { NotificationProvider } from "../context/NotificationContext";
-// import InstructorNotification from "../pages/Instructor/InstructorNotification";
+import { NotificationProvider } from "../context/NotificationContext";
+import InstructorNotification from "../pages/Instructor/InstructorNotification";
 import InstructorQuizzes from "../pages/Instructor/InstructorQuizzes";
 import QuizManagement from "../pages/Instructor/QuizManagement";
 import InstructorLivePage from "../pages/Instructor/InstructorLiveSession";
@@ -87,14 +87,14 @@ const InstructorRoutes = () => {
         path={INSTRUCTOR_ROUTES.BASE}
         element={
           <InstructorProvider>
-            {/* <NotificationProvider> */}
+            <NotificationProvider>
               <CallProvider>
                 <ProtectedRoute>
                   <InstructorNavbar />
                   <CallModal />
                 </ProtectedRoute>
               </CallProvider>
-            {/* </NotificationProvider> */}
+            </NotificationProvider>
           </InstructorProvider>
         }
       >
@@ -139,10 +139,10 @@ const InstructorRoutes = () => {
           element={<ProtectedRoute><Earnings role="instructors" /></ProtectedRoute>}
         />
         <Route path={INSTRUCTOR_ROUTES.ENROLLMENTS} element={<ProtectedRoute><Enrollments /></ProtectedRoute>} />
-        {/* <Route
+        <Route
           path={INSTRUCTOR_ROUTES.NOTIFICATIONS}
           element={<ProtectedRoute><InstructorNotification /></ProtectedRoute>}
-        /> */}
+        />
         <Route
           path={INSTRUCTOR_ROUTES.COURSE_PROGRESS()}
           element={<ProtectedRoute><CourseProgress /></ProtectedRoute>}

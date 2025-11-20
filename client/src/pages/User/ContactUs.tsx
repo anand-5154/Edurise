@@ -133,7 +133,7 @@ const ContactPage = () => {
       </section>
 
       <footer className="py-6 text-center text-sm text-[color:var(--text-600)] border-t" style={{ borderColor: "var(--stroke-200)" }}>
-        © {new Date().getFullYear()} Learn At. All rights reserved.
+        © {new Date().getFullYear()} EduRise. All rights reserved.
       </footer>
     </div>
   );

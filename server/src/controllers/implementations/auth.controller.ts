@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { IAuthController } from "../interfaces/Iauth.interfaces";
-import { IAuthService } from "../../services/interfaces/auth.services";
+import { IAuthService } from "../../services/interfaces/Iauth.services";
 import { httpStatus } from "../../constants/statusCodes";
 import { generateRefreshToken, generateToken } from "../../utils/jwt";
 import jwt from "jsonwebtoken";
-import { IMessageService } from "../../services/interfaces/message.interface";
+import { IMessageService } from "../../services/interfaces/Imessage.interface";
 import { UserRequest } from "../../types/express";
-import { ICertificateService } from "../../services/interfaces/certificate.interface";
-import { ILiveSessionService } from "../../services/interfaces/livesession.interface";
+import { ICertificateService } from "../../services/interfaces/Icertificate.interface";
+import { ILiveSessionService } from "../../services/interfaces/Ilivesession.interface";
 
 export class Authcontroller implements IAuthController {
   constructor(
@@ -230,7 +230,7 @@ export class Authcontroller implements IAuthController {
   async getCourses(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
       const category = (req.query.category as string) || "";
       const minPrice = parseInt(req.query.minPrice as string) || 0;
@@ -291,22 +291,44 @@ export class Authcontroller implements IAuthController {
 
   async buyCourse(req: UserRequest, res: Response): Promise<void> {
     try {
-      const { courseId } = req.body;
+      const { courseId, paymentMethod } = req.body;
       const userId = req.user?.id;
-      const order = await this._authService.createOrder(courseId!, userId!);
-      res.status(httpStatus.OK).json(order);
+      if (!courseId) {
+        res.status(httpStatus.BAD_REQUEST).json({ message: "Course ID is required" });
+        return;
+      }
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not authorized" });
+        return;
+      }
+
+      if (paymentMethod === "wallet") {
+        const order = await this._authService.purchaseCourseWithWallet(
+          courseId,
+          userId
+        );
+        res
+          .status(httpStatus.OK)
+          .json({ order, paymentMethod: "wallet", message: "Purchase successful via wallet" });
+        return;
+      }
+
+      const order = await this._authService.createOrder(courseId, userId);
+      res.status(httpStatus.OK).json({ order, paymentMethod: "razorpay" });
     } catch (err: unknown) {
       console.error(err);
       const message = err instanceof Error ? err.message : "Something went wrong";
 
-      // Map known service errors to appropriate HTTP status codes
-      if (message.includes("Course is purchased") || message.includes("payment in progress")) {
-        res.status(httpStatus.CONFLICT).json({ message }); // 409 Conflict
+      if (
+        message.includes("Course is purchased") ||
+        message.includes("payment in progress")
+      ) {
+        res.status(httpStatus.CONFLICT).json({ message });
         return;
       }
 
       if (message.includes("Course dont't exist") || message.includes("Course dont")) {
-        res.status(httpStatus.NOT_FOUND).json({ message }); // 404 Not Found
+        res.status(httpStatus.NOT_FOUND).json({ message });
         return;
       }
 
@@ -317,10 +339,21 @@ export class Authcontroller implements IAuthController {
   async cancelOrder(req: Request, res: Response): Promise<void> {
     try {
       const {orderId}=req.params
-      const order = await this._authService.cancelOrder(orderId);
+      const userId = (req as UserRequest).user?.id;
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not authorized" });
+        return;
+      }
+      const order = await this._authService.cancelOrder(orderId, userId);
       res.status(httpStatus.OK).json({ success: true, data: order });
     } catch (err) {
       console.log(err)
+      const message = err instanceof Error ? err.message : "Failed to cancel order";
+      if (message.includes("window")) {
+        res.status(httpStatus.FORBIDDEN).json({ message });
+        return;
+      }
+      res.status(httpStatus.BAD_REQUEST).json({ message });
     }
   }
 
@@ -556,7 +589,7 @@ export class Authcontroller implements IAuthController {
     try {
       const userId = req.user?.id;
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
 
       if (!userId) {
         res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
@@ -570,6 +603,24 @@ export class Authcontroller implements IAuthController {
         .json({ purchases: purchases, total, totalPages, currentPage: page });
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  async getWallet(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not authorized" });
+        return;
+      }
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 5;
+      const data = await this._authService.getUserWallet(userId, page, limit);
+      res.status(httpStatus.OK).json({ ...data, currentPage: page });
+    } catch (error) {
+      console.error(error);
+      const message = error instanceof Error ? error.message : "Failed to fetch wallet";
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
     }
   }
 
@@ -619,7 +670,7 @@ export class Authcontroller implements IAuthController {
   async purchasedCourses(req: UserRequest, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const userId = req.user?.id;
       if (!userId) {
         res.status(httpStatus.UNAUTHORIZED).json({ message: "user not found" });
@@ -639,7 +690,7 @@ export class Authcontroller implements IAuthController {
     try {
       const user = req.user?.id;
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       if (!user) {
         res
           .status(httpStatus.UNAUTHORIZED)
@@ -792,6 +843,312 @@ export class Authcontroller implements IAuthController {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         error: (error as Error).message,
       });
+    }
+  }
+
+  async createLearningPath(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      const { title, description, targetDate, courses } = req.body;
+
+      let parsedTargetDate: Date | null | undefined = undefined;
+      if (targetDate) {
+        const date = new Date(targetDate);
+        if (Number.isNaN(date.getTime())) {
+          res.status(httpStatus.BAD_REQUEST).json({ message: "Invalid target date" });
+          return;
+        }
+        parsedTargetDate = date;
+      }
+
+      const sanitizedCourses = Array.isArray(courses)
+        ? courses
+            .filter((course) => course && course.courseId)
+            .map((course) => ({
+              courseId: String(course.courseId),
+              note: course.note,
+            }))
+        : [];
+
+      const learningPath = await this._authService.createLearningPath(userId, {
+        title,
+        description,
+        targetDate: parsedTargetDate ?? null,
+        courses: sanitizedCourses,
+      });
+
+      res.status(httpStatus.CREATED).json(learningPath);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async getLearningPaths(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      const paths = await this._authService.getLearningPaths(userId);
+      res.status(httpStatus.OK).json(paths);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async getLearningPath(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { pathId } = req.params;
+
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      const path = await this._authService.getLearningPathById(userId, pathId);
+      res.status(httpStatus.OK).json(path);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      if (message === "Learning path not found") {
+        res.status(httpStatus.NOT_FOUND).json({ message });
+        return;
+      }
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async updateLearningPath(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { pathId } = req.params;
+
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      const { title, description, targetDate, isArchived } = req.body;
+      let parsedTargetDate: Date | null | undefined = undefined;
+      if (targetDate !== undefined) {
+        if (targetDate === null || targetDate === "") {
+          parsedTargetDate = null;
+        } else {
+          const date = new Date(targetDate);
+          if (Number.isNaN(date.getTime())) {
+            res
+              .status(httpStatus.BAD_REQUEST)
+              .json({ message: "Invalid target date" });
+            return;
+          }
+          parsedTargetDate = date;
+        }
+      }
+
+      const updated = await this._authService.updateLearningPath(userId, pathId, {
+        title,
+        description,
+        targetDate: parsedTargetDate,
+        isArchived,
+      });
+
+      res.status(httpStatus.OK).json(updated);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      if (message === "Learning path not found") {
+        res.status(httpStatus.NOT_FOUND).json({ message });
+        return;
+      }
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async deleteLearningPath(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { pathId } = req.params;
+
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      await this._authService.deleteLearningPath(userId, pathId);
+      res.sendStatus(httpStatus.NO_CONTENT);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      if (message === "Learning path not found") {
+        res.status(httpStatus.NOT_FOUND).json({ message });
+        return;
+      }
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async addCourseToLearningPath(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { pathId } = req.params;
+      const { courseId, note } = req.body as {
+        courseId?: string;
+        note?: string;
+      };
+
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      if (!courseId) {
+        res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ message: "courseId is required" });
+        return;
+      }
+
+      const path = await this._authService.addCourseToLearningPath(
+        userId,
+        pathId,
+        courseId,
+        note
+      );
+
+      res.status(httpStatus.OK).json(path);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      if (message === "Learning path not found" || message === "Course not found") {
+        res.status(httpStatus.NOT_FOUND).json({ message });
+        return;
+      }
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async removeCourseFromLearningPath(
+    req: UserRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { pathId, courseId } = req.params;
+
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      const path = await this._authService.removeCourseFromLearningPath(
+        userId,
+        pathId,
+        courseId
+      );
+
+      res.status(httpStatus.OK).json(path);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      if (message === "Learning path not found") {
+        res.status(httpStatus.NOT_FOUND).json({ message });
+        return;
+      }
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async reorderLearningPathCourses(
+    req: UserRequest,
+    res: Response
+  ): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { pathId } = req.params;
+      const { orderedCourseIds } = req.body as { orderedCourseIds?: string[] };
+
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      if (!Array.isArray(orderedCourseIds)) {
+        res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ message: "orderedCourseIds must be an array" });
+        return;
+      }
+
+      const path = await this._authService.reorderLearningPathCourses(
+        userId,
+        pathId,
+        orderedCourseIds
+      );
+
+      res.status(httpStatus.OK).json(path);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      if (message === "Learning path not found") {
+        res.status(httpStatus.NOT_FOUND).json({ message });
+        return;
+      }
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
+    }
+  }
+
+  async getLearningPathCatalog(req: UserRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(httpStatus.UNAUTHORIZED).json({ message: "User not found" });
+        return;
+      }
+
+      const courses = await this._authService.getLearningPathCourseCatalog(
+        userId
+      );
+      res.status(httpStatus.OK).json(courses);
+    } catch (err: unknown) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message });
     }
   }
 }

@@ -1,7 +1,7 @@
 import {
   ICourseService,
   CreateCourseInput,
-} from "../interfaces/course.services";
+} from "../interfaces/Icourse.services";
 import { ICourseRepository } from "../../repository/interfaces/Icourse.interface";
 import { IModule, UpdateCourseInput } from "../../models/interfaces/Icourse.interface";
 import { Types } from "mongoose";

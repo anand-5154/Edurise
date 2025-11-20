@@ -9,6 +9,7 @@ export interface ITransaction {
 }
 
 export interface IWallet{
+    // ownerType: 'user' | 'instructors' | 'admin'
     ownerType:string,
     ownerId:Types.ObjectId,
     balance:number,

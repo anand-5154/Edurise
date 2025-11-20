@@ -1,5 +1,5 @@
 import { IAdminController } from "../interfaces/Iadmin.interface";
-import { IAdminService } from "../../services/interfaces/admin.services";
+import { IAdminService } from "../../services/interfaces/Iadmin.services";
 import { Request, Response } from "express";
 import { httpStatus } from "../../constants/statusCodes";
 import jwt from "jsonwebtoken";
@@ -101,7 +101,7 @@ export class AdminController implements IAdminController {
   async getAllUsers(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
       const { users, total, totalPages } = await this._adminService.getAllUsers(
         page,
@@ -124,7 +124,7 @@ export class AdminController implements IAdminController {
   async getAllTutors(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const isVerified = req.query.isVerified;
       const search = (req.query.search as string) || "";
 
@@ -208,7 +208,7 @@ export class AdminController implements IAdminController {
   async getCatgeories(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
       const status = (req.query.status as string) || "";
       const category = await this._adminService.getCategories(
@@ -258,7 +258,7 @@ export class AdminController implements IAdminController {
   async getCourses(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
       const { course, total, totalPage } =
         await this._adminService.getCoursesService(page, limit, search);
@@ -305,7 +305,7 @@ export class AdminController implements IAdminController {
   async getAllReviews(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 6;
+      const limit = parseInt(req.query.limit as string) || 5;
 
       const search =
         typeof req.query.search === "string" ? req.query.search : "";
@@ -390,7 +390,7 @@ export class AdminController implements IAdminController {
   async getWallet(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const { wallet, total, totalPages, transactions } =
         await this._adminService.getWallet(page, limit);
       res.status(httpStatus.OK).json({
@@ -446,7 +446,7 @@ export class AdminController implements IAdminController {
   async getComplaints(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
       const filter = (req.query.status as string) || "";
       const { complaints, total, totalPages } =
@@ -576,7 +576,7 @@ export class AdminController implements IAdminController {
   async getUserActivityReport(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
 
       const report = await this._adminService.getUserActivityReport(
@@ -598,7 +598,7 @@ export class AdminController implements IAdminController {
   async getCoursePerformanceReport(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 5;
       const search = (req.query.search as string) || "";
 
       const report = await this._adminService.getCoursePerformanceReport(

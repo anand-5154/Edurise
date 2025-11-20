@@ -3,7 +3,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import image from "../../assets/learnAt-removebg-preview.png";
+import image from "../../assets/Edurise-logo.png";
 import { errorToast, successToast } from "../../components/Toast";
 import { userLoginS } from "../../services/user.services";
 import { USER_ROUTES } from "../../constants/routes.constants";

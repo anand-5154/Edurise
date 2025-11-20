@@ -38,5 +38,14 @@ export interface IAuthController{
     createCertificate(req: Request, res: Response):Promise<void>
     getSessionToken(req: Request, res: Response): Promise<void>
     getLiveSessionByCourseId(req: Request, res: Response): Promise<void>
+    createLearningPath(req: Request, res: Response): Promise<void>
+    getLearningPaths(req: Request, res: Response): Promise<void>
+    getLearningPath(req: Request, res: Response): Promise<void>
+    updateLearningPath(req: Request, res: Response): Promise<void>
+    deleteLearningPath(req: Request, res: Response): Promise<void>
+    addCourseToLearningPath(req: Request, res: Response): Promise<void>
+    removeCourseFromLearningPath(req: Request, res: Response): Promise<void>
+    reorderLearningPathCourses(req: Request, res: Response): Promise<void>
+    getLearningPathCatalog(req: Request, res: Response): Promise<void>
     logOut(req:Request,res:Response):Promise<void>
 }

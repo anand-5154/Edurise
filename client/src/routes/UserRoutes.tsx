@@ -16,13 +16,14 @@ import ProtectedRoute from "../pages/User/ProtectedRoute";
 import { USER_ROUTES } from "../constants/routes.constants";
 import CourseView from "../pages/User/CourseView";
 import PurchaseHistory from "../pages/User/CoursePurchaseHistory";
+import UserWallet from "../pages/User/UserWallet";
 import ChatWindow from "../components/ChatWindow";
 import ChatPage from "../components/ChatPage";
 import VideoCall from "../components/VideoCall";
 import { CallProvider } from "../context/CallContext";
 import CallModal from "../components/CallModal";
 import UserNotification from "../pages/User/UserNotification";
-// import { NotificationProvider } from "../context/NotificationContext";
+import { NotificationProvider } from "../context/NotificationContext";
 import PurchasedCourses from "../pages/User/PurchasedCourses";
 import ChangePassword from "../pages/User/ChangePassword";
 import UserCertificates from "../pages/User/Certificates";
@@ -31,6 +32,7 @@ import UserQuizPage from "../pages/User/UserQuiz";
 import StudentLivePage from "../pages/User/UserLiveSession";
 import AboutPage from "../pages/User/AboutUs";
 import ContactPage from "../pages/User/ContactUs";
+import LearningPaths from "../pages/User/LearningPaths";
 
 const UserRoutes = () => {
   return (
@@ -47,6 +49,14 @@ const UserRoutes = () => {
         <Route
           path={USER_ROUTES.PURCHASE_HISTORY}
           element={<ProtectedRoute><PurchaseHistory /></ProtectedRoute>}
+        />
+        <Route
+          path={USER_ROUTES.WALLET}
+          element={<ProtectedRoute><UserWallet /></ProtectedRoute>}
+        />
+        <Route
+          path={USER_ROUTES.LEARNING_PATHS}
+          element={<ProtectedRoute><LearningPaths /></ProtectedRoute>}
         />
         <Route path={USER_ROUTES.LOGIN} element={<UserLogin />} />
         <Route
@@ -131,12 +141,12 @@ const UserRoutes = () => {
 const UserProviderWrapper = () => {
   return (
     <UserProvider>
-      {/* <NotificationProvider> */}
+      <NotificationProvider>
         <CallProvider>
           <Outlet />
           <CallModal />
         </CallProvider>
-      {/* </NotificationProvider> */}
+      </NotificationProvider>
     </UserProvider>
   );
 };

@@ -52,7 +52,7 @@ const authRole = (allowedRoles: Array<"user" | "instructor" | "admin">) => {
             });
             return;
           }
-          req.user = { id: user._id, email: user.email };
+          req.user = { id: user._id.toString(), email: user.email };
           break;
 
         case "instructor":

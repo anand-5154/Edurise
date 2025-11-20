@@ -1,4 +1,4 @@
-import { IAdminService } from "../interfaces/admin.services";
+import { IAdminService } from "../interfaces/Iadmin.services";
 import { IAdminRepository } from "../../repository/interfaces/Iadmin.interface";
 import { IInstructorAuthRepository } from "../../repository/interfaces/IinstructorAuth.interface";
 import { IAuthRepository } from "../../repository/interfaces/Iauth.interface";

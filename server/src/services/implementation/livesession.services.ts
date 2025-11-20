@@ -2,7 +2,7 @@ import { generateAgoraToken } from "../../utils/generateAgoraToken";
 import { ILiveSessionRepository } from "../../repository/interfaces/Ilivesession.interface";
 import { sendNotificationToUser } from "../../socket/socket";
 import { ICourseRepository } from "../../repository/interfaces/Icourse.interface";
-import { ILiveSessionService } from "../interfaces/livesession.interface";
+import { ILiveSessionService } from "../interfaces/Ilivesession.interface";
 import { LiveSessionDTO } from "../../DTO/livesession.dto";
 import { toLivesessionDTO } from "../../Mappers/livesession.mapper";
 

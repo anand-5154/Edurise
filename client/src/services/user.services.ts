@@ -6,9 +6,14 @@ import type {
 } from "../types/user.types";
 import type { IOrder, VerifyResponse } from "../types/order.types";
 import type { Review } from "../types/review.types";
-// import type { INotification } from "../context/NotificationContext";
+import type { INotification } from "../context/NotificationContext";
 import { createApi } from "./newApiService";
 import type { IInstructorProfile } from "../types/instructor.types";
+import type {
+  LearningPath,
+  LearningPathCourseCatalogItem,
+} from "../types/learningPath.types";
+import type { WalletResponse } from "../types/wallet.types";
 
 const api = createApi("user");
 
@@ -84,6 +89,9 @@ interface Orders {
   purchasedAt: string;
   amount: number;
   status: string;
+  paymentMethod?: "razorpay" | "wallet";
+  cancelledAt?: string;
+  refundAmount?: number;
 }
 
 interface PurchasedCourse {
@@ -123,8 +131,11 @@ export const getCoursesS = async (
   );
 };
 
-export const CreateOrderS = async (courseId: string) => {
-  return await api.post<IOrder>("/users/orders", { courseId });
+export const CreateOrderS = async (courseId: string, paymentMethod: "razorpay" | "wallet" = "razorpay") => {
+  return await api.post<{ order: IOrder; paymentMethod: "razorpay" | "wallet"; message?: string }>(
+    "/users/orders",
+    { courseId, paymentMethod }
+  );
 };
 
 export const cancelOrderS = async(orderId:string)=>{
@@ -218,6 +229,10 @@ export const purchaseHistoryS = async (page: number, limit: number) => {
     total: number;
     totalPages: number;
   }>(`/users/purchase-history?page=${page}&limit=${limit}`);
+};
+
+export const getUserWalletS = async (page: number, limit: number) => {
+  return await api.get<WalletResponse>(`/users/wallet?page=${page}&limit=${limit}`);
 };
 
 export const getProgressS = async (courseId: string) => {
@@ -403,4 +418,72 @@ export const makeCertificate = async (formData: FormData) => {
 
 export const getLiveToken = async (sessionId: string, role: string) => {
   return await api.get(`/users/live/token?sessionId=${sessionId}&role=${role}`);
+};
+
+export const getLearningPathsS = async () => {
+  return await api.get<LearningPath[]>("/users/learning-paths");
+};
+
+export const getLearningPathCatalogS = async () => {
+  return await api.get<LearningPathCourseCatalogItem[]>(
+    "/users/learning-paths/catalog"
+  );
+};
+
+export const createLearningPathS = async (payload: {
+  title: string;
+  description?: string;
+  targetDate?: string | null;
+  courses?: { courseId: string; note?: string }[];
+}) => {
+  return await api.post<LearningPath>("/users/learning-paths", payload);
+};
+
+export const updateLearningPathS = async (
+  pathId: string,
+  payload: {
+    title?: string;
+    description?: string;
+    targetDate?: string | null;
+    isArchived?: boolean;
+  }
+) => {
+  return await api.patch<LearningPath>(
+    `/users/learning-paths/${pathId}`,
+    payload
+  );
+};
+
+export const deleteLearningPathS = async (pathId: string) => {
+  return await api.delete(`/users/learning-paths/${pathId}`);
+};
+
+export const addCourseToLearningPathS = async (
+  pathId: string,
+  courseId: string,
+  note?: string
+) => {
+  return await api.post<LearningPath>(
+    `/users/learning-paths/${pathId}/courses`,
+    { courseId, note }
+  );
+};
+
+export const removeCourseFromLearningPathS = async (
+  pathId: string,
+  courseId: string
+) => {
+  return await api.delete<LearningPath>(
+    `/users/learning-paths/${pathId}/courses/${courseId}`
+  );
+};
+
+export const reorderLearningPathCoursesS = async (
+  pathId: string,
+  orderedCourseIds: string[]
+) => {
+  return await api.post<LearningPath>(
+    `/users/learning-paths/${pathId}/reorder`,
+    { orderedCourseIds }
+  );
 };
